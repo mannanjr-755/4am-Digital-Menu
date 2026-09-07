@@ -57,5 +57,3 @@ backend/next-env.d.ts
 
 # transcript extracts
 .transcript-extract/
-
-.vercel

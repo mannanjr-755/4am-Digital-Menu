@@ -7,9 +7,13 @@ const cwd = process.cwd();
 const envRoot = existsSync(path.join(cwd, ".env")) ? cwd : path.join(cwd, "..");
 loadEnvConfig(envRoot);
 
+const monorepoRoot = path.join(__dirname, "..");
+
 const nextConfig: NextConfig = {
+  // Trace files from the repo root so API routes can import `backend/src`.
+  outputFileTracingRoot: monorepoRoot,
   turbopack: {
-    root: path.join(__dirname, ".."),
+    root: monorepoRoot,
   },
   experimental: {
     externalDir: true,
