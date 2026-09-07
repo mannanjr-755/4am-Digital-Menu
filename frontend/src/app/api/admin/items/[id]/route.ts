@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { requireStaff } from "@/lib/session";
+import { prisma } from "@backend/lib/prisma";
+import { requireStaff } from "@backend/lib/session";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

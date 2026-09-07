@@ -6,11 +6,13 @@ Premium dark/gold digital menu + kitchen dashboard.
 
 ```
 restaurantorder/
-├── frontend/     # Next.js UI (pages, components, public assets)
-├── backend/      # API routes, Prisma schema, server libraries
-├── package.json  # Root scripts — `npm run dev` starts both apps
-└── .env          # Shared environment config (loaded by both apps)
+├── frontend/     # Next.js app (UI + `/api/*` route handlers)
+├── backend/      # Prisma schema, seed, and server libraries
+├── package.json  # Root scripts — `npm run dev` starts the app
+└── .env          # Shared environment config
 ```
+
+Production is a **single Vercel project** (`nfc-digital-menu`) with one public URL. The API is served from the same Next.js deployment at `/api/*`.
 
 ## Quick start
 
@@ -22,9 +24,7 @@ npm run db:seed
 npm run dev
 ```
 
-This starts:
-- **Frontend** at http://localhost:3000 (customer menu + admin UI)
-- **Backend API** at http://localhost:4000 (proxied via frontend at `/api/*`)
+This starts the full app at http://localhost:3000 (customer menu, admin UI, and API).
 
 ## Demo
 

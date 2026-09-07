@@ -3,9 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "dotenv -e ../.env -- next dev -p 4000",
-    "build": "prisma generate && next build",
-    "start": "dotenv -e ../.env -- next start -p 4000",
+    "build": "prisma generate",
     "db:push": "dotenv -e ../.env -- prisma db push",
     "db:seed": "dotenv -e ../.env -- tsx prisma/seed.ts",
     "db:studio": "dotenv -e ../.env -- prisma studio",

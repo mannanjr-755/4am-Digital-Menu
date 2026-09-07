@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { put } from "@vercel/blob";
-import { requireStaff } from "@/lib/session";
+import { requireStaff } from "@backend/lib/session";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ url: blob.url });
     }
 
-    const uploadDir = join(process.cwd(), "..", "frontend", "public", "uploads", "menu");
+    const uploadDir = join(process.cwd(), "public", "uploads", "menu");
     const filepath = join(uploadDir, filename);
 
     await mkdir(uploadDir, { recursive: true });

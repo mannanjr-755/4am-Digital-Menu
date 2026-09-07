@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { generateOrderNumber } from "@/lib/orders";
+import { prisma } from "@backend/lib/prisma";
+import { generateOrderNumber } from "@backend/lib/orders";
 
 const placeOrderSchema = z.object({
   restaurantSlug: z.string().min(1),

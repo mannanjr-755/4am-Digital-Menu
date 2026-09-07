@@ -7,9 +7,9 @@
     "backend"
   ],
   "scripts": {
-    "dev": "concurrently -n frontend,backend -c cyan,magenta \"npm run dev --workspace=frontend\" \"npm run dev --workspace=backend\"",
-    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
-    "start": "concurrently -n frontend,backend -c cyan,magenta \"npm run start --workspace=frontend\" \"npm run start --workspace=backend\"",
+    "dev": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspace=frontend",
+    "start": "npm run start --workspace=frontend",
     "lint": "npm run lint --workspace=frontend",
     "db:push": "npm run db:push --workspace=backend",
     "db:seed": "npm run db:seed --workspace=backend",

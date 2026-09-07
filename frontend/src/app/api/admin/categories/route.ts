@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { requireStaff } from "@/lib/session";
+import { prisma } from "@backend/lib/prisma";
+import { requireStaff } from "@backend/lib/session";
 
 const createCategorySchema = z.object({
   name: z.string().trim().min(1).max(100),
