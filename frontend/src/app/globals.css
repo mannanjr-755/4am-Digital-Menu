@@ -2,49 +2,49 @@
 
 :root,
 [data-theme="dark"] {
-  --bg: #050505;
-  --bg-elevated: #0e0e0e;
-  --bg-card: #141414;
-  --bg-soft: #1a1a1a;
-  --bg-sidebar: #0a0a0a;
-  --border: #2a2a2a;
-  --border-strong: #3a3a3a;
-  --gold: #d4a017;
-  --gold-bright: #e8c547;
-  --gold-dim: #8a6a12;
-  --text: #f5f5f5;
-  --text-muted: #9ca3af;
-  --text-dim: #6b7280;
+  --bg: #1c1412;
+  --bg-elevated: #241a18;
+  --bg-card: #2a1f1c;
+  --bg-soft: #322522;
+  --bg-sidebar: #181210;
+  --border: #3d2e2a;
+  --border-strong: #4a3833;
+  --gold: #a67066;
+  --gold-bright: #f3e9dc;
+  --gold-dim: #7a524a;
+  --text: #f3e9dc;
+  --text-muted: #c4b5a8;
+  --text-dim: #8a7a70;
   --danger: #ef4444;
-  --orange: #f97316;
+  --orange: #c4846c;
   --success: #22c55e;
   --info: #3b82f6;
   --purple: #a855f7;
-  --overlay: rgba(0, 0, 0, 0.55);
-  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --overlay: rgba(28, 20, 18, 0.65);
+  --shadow: 0 8px 24px rgba(28, 20, 18, 0.4);
 }
 
 [data-theme="light"] {
-  --bg: #f4f4f5;
-  --bg-elevated: #ffffff;
-  --bg-card: #ffffff;
-  --bg-soft: #f4f4f5;
-  --bg-sidebar: #fafafa;
-  --border: #e4e4e7;
-  --border-strong: #d4d4d8;
-  --gold: #b8860b;
-  --gold-bright: #a16207;
-  --gold-dim: #8a6a12;
-  --text: #18181b;
-  --text-muted: #71717a;
-  --text-dim: #a1a1aa;
+  --bg: #f3e9dc;
+  --bg-elevated: #faf6f0;
+  --bg-card: #faf6f0;
+  --bg-soft: #ebe0d4;
+  --bg-sidebar: #ebe0d4;
+  --border: #d9c9bb;
+  --border-strong: #c4b0a0;
+  --gold: #a67066;
+  --gold-bright: #8a564e;
+  --gold-dim: #7a524a;
+  --text: #2a1c1a;
+  --text-muted: #6b534c;
+  --text-dim: #9a8178;
   --danger: #ef4444;
-  --orange: #f97316;
+  --orange: #c4846c;
   --success: #16a34a;
   --info: #2563eb;
   --purple: #9333ea;
-  --overlay: rgba(0, 0, 0, 0.4);
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --overlay: rgba(42, 28, 26, 0.4);
+  --shadow: 0 1px 3px rgba(42, 28, 26, 0.1);
 }
 
 @theme inline {
@@ -108,10 +108,10 @@ h3,
 @keyframes pulse-gold {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(212, 160, 23, 0.35);
+    box-shadow: 0 0 0 0 rgba(166, 112, 102, 0.35);
   }
   50% {
-    box-shadow: 0 0 0 8px rgba(212, 160, 23, 0);
+    box-shadow: 0 0 0 8px rgba(166, 112, 102, 0);
   }
 }
 
@@ -120,11 +120,11 @@ h3,
 }
 
 .gold-gradient {
-  background: linear-gradient(135deg, #f0c14b 0%, #d4a017 45%, #8a6a12 100%);
+  background: linear-gradient(135deg, #c4897e 0%, #a67066 45%, #7a524a 100%);
 }
 
 .gold-text {
-  background: linear-gradient(135deg, #f5d76e, #d4a017);
+  background: linear-gradient(135deg, #f3e9dc, #a67066);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

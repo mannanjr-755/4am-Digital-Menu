@@ -1,22 +1,24 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Bell,
   ClipboardList,
   Heart,
-  Menu,
   Minus,
   Phone,
   Plus,
   Search,
   ShoppingCart,
   Smile,
-  UtensilsCrossed,
 } from "lucide-react";
 import { formatMoney, isCustomerEditable, STATUS_LABELS } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
+
+const FEEDBACK_URL =
+  "https://www.google.com/search?q=Le+Bon+Panier+Cafe+menu&rlz=1C1GCEA_en-GBPK1168PK1168&oq=Le&gs_lcrp=EgZjaHJvbWUqBggEEEUYOzIGCAAQRRg8MgoIARAAGLEDGIAEMgoIAhAAGLEDGIAEMgYIAxBFGDsyBggEEEUYOzIGCAUQRRg5MgYIBhBFGDwyBggHEEUYPdIBCDcwOTJqMGo3qAIAsAIA&sourceid=chrome&source=chrome.ob&ie=UTF-8#lrd=0x3eb33d003c2e03c3:0x8cf7ef6c98453b52,3,,,,";
 
 type ActiveOrderItem = {
   id: string;
@@ -309,7 +311,7 @@ export function CustomerMenu({
             <Heart className={`h-4 w-4 ${favorites.has(item.id) ? "fill-current" : ""}`} />
           </button>
           {item.todaySpecial && (
-            <span className="absolute left-2 top-2 rounded-full bg-[var(--gold)] px-2 py-0.5 text-[10px] font-bold text-black">
+            <span className="absolute left-2 top-2 rounded-full bg-[var(--gold)] px-2 py-0.5 text-[10px] font-bold text-[var(--gold-bright)]">
               Special
             </span>
           )}
@@ -335,7 +337,7 @@ export function CustomerMenu({
                   addToCart(item);
                 }
               }}
-              className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--gold)] text-black"
+              className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--gold)] text-[var(--gold-bright)]"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -527,9 +529,14 @@ export function CustomerMenu({
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[var(--bg)] via-[var(--bg)]/90 to-[var(--bg)]" />
         <div className="relative z-10 flex h-full flex-col px-5 py-6">
           <div className="flex flex-col items-center text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[var(--gold)] text-[var(--gold)]">
-              <UtensilsCrossed className="h-8 w-8" />
-            </div>
+            <Image
+              src="/logo.png"
+              alt="Bon Panier"
+              width={96}
+              height={96}
+              className="h-20 w-20 rounded-full object-cover shadow-[var(--shadow)]"
+              priority
+            />
             <h1 className="font-display mt-3 text-2xl text-[var(--gold-bright)]">{restaurant.name}</h1>
             <p className="mt-1 text-[10px] uppercase tracking-[0.35em] text-[var(--text-muted)]">Restaurant</p>
           </div>
@@ -545,7 +552,9 @@ export function CustomerMenu({
                 type="button"
                 disabled={type !== null && serviceBusy !== null}
                 onClick={() =>
-                  type ? sendTableRequest(type) : flash("Feedback request sent")
+                  type
+                    ? sendTableRequest(type)
+                    : window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer")
                 }
                 className="flex flex-col items-center gap-1 rounded-lg border border-[var(--border-strong)] bg-[var(--bg)]/50 py-3 text-[var(--gold)] transition hover:border-[var(--gold)]/60 disabled:opacity-60"
               >
@@ -610,7 +619,7 @@ export function CustomerMenu({
                 <button
                   type="button"
                   onClick={handleSidebarAddMore}
-                  className="rounded-lg bg-[var(--gold)] px-3 py-2 text-[11px] font-bold text-black transition hover:bg-[var(--gold-bright)]"
+                  className="rounded-lg bg-[var(--gold)] px-3 py-2 text-[11px] font-bold text-[var(--gold-bright)] transition hover:opacity-90"
                 >
                   &#10133; Add More
                 </button>
@@ -625,7 +634,14 @@ export function CustomerMenu({
       <div className="relative flex min-w-0 flex-1 flex-col bg-[var(--bg)]">
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3 lg:hidden">
           <div className="flex items-center gap-2">
-            <UtensilsCrossed className="h-6 w-6 text-[var(--gold)]" />
+            <Image
+              src="/logo.png"
+              alt="Bon Panier"
+              width={40}
+              height={40}
+              className="h-10 w-10 rounded-full object-cover"
+              priority
+            />
             <div>
               <p className="font-display text-[var(--gold-bright)]">{restaurant.name}</p>
               <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Table {tableNumber}</p>
@@ -636,7 +652,7 @@ export function CustomerMenu({
             <button type="button" onClick={() => setShowCart(true)} className="relative text-[var(--gold)]">
               <ShoppingCart className="h-6 w-6" />
               {cartCount > 0 && (
-                <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--gold)] text-[10px] font-bold text-black">
+                <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--gold)] text-[10px] font-bold text-[var(--bg)]">
                   {cartCount}
                 </span>
               )}
@@ -655,7 +671,9 @@ export function CustomerMenu({
               type="button"
               disabled={type !== null && serviceBusy !== null}
               onClick={() =>
-                type ? sendTableRequest(type) : flash("Feedback request sent")
+                type
+                  ? sendTableRequest(type)
+                  : window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer")
               }
               className="flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 py-2 text-[var(--gold)] transition hover:border-[var(--gold)]/40 disabled:opacity-60"
             >
@@ -668,9 +686,6 @@ export function CustomerMenu({
         </div>
 
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-[var(--border)] bg-[var(--bg)]/95 px-4 py-3 backdrop-blur sm:px-6">
-          <button type="button" className="rounded-lg border border-[var(--border)] p-2 text-[var(--gold)] lg:hidden">
-            <Menu className="h-5 w-5" />
-          </button>
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-dim)]" />
             <input
@@ -691,7 +706,7 @@ export function CustomerMenu({
           >
             <ShoppingCart className="h-5 w-5" />
             {cartCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--gold)] px-1 text-[10px] font-bold text-black">
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--gold)] px-1 text-[10px] font-bold text-[var(--bg)]">
                 {cartCount}
               </span>
             )}
@@ -819,7 +834,7 @@ export function CustomerMenu({
               <div className="flex items-center gap-3">
                 <div className="relative text-[var(--gold)]">
                   <ShoppingCart className="h-6 w-6" />
-                  <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--gold)] text-[10px] font-bold text-black">
+                  <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--gold)] text-[10px] font-bold text-[var(--gold-bright)]">
                     {cartCount}
                   </span>
                 </div>
@@ -831,7 +846,7 @@ export function CustomerMenu({
               <button
                 type="button"
                 onClick={() => setShowCart(true)}
-                className="rounded-md bg-[var(--gold)] px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-black"
+                className="rounded-md bg-[var(--gold)] px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-[var(--gold-bright)]"
               >
                 View Cart
               </button>
@@ -862,7 +877,7 @@ export function CustomerMenu({
                 <button
                   type="button"
                   onClick={handleSidebarAddMore}
-                  className="rounded-md bg-[var(--gold)] px-3 py-2 text-[11px] font-bold text-black"
+                  className="rounded-md bg-[var(--gold)] px-3 py-2 text-[11px] font-bold text-[var(--gold-bright)]"
                 >
                   + Add
                 </button>
@@ -913,7 +928,7 @@ export function CustomerMenu({
                       <button
                         type="button"
                         onClick={() => updateQty(line.menuItemId, 1)}
-                        className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--gold)] text-black"
+                        className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--gold)] text-[var(--gold-bright)]"
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </button>
@@ -961,7 +976,7 @@ export function CustomerMenu({
                 type="button"
                 disabled={submitting || !cart.length}
                 onClick={isEditMode ? updateOrder : placeOrder}
-                className="w-full rounded-md bg-[var(--gold)] py-3 text-sm font-bold uppercase tracking-wider text-black disabled:opacity-50"
+                className="w-full rounded-md bg-[var(--gold)] py-3 text-sm font-bold uppercase tracking-wider text-[var(--gold-bright)] disabled:opacity-50"
               >
                 {submitting
                   ? isEditMode ? "Updating order…" : "Placing order…"
@@ -994,7 +1009,7 @@ export function CustomerMenu({
                 ✕
               </button>
               {detailItem.todaySpecial && (
-                <span className="absolute left-3 top-3 rounded-full bg-[var(--gold)] px-3 py-1 text-xs font-bold text-black">
+                <span className="absolute left-3 top-3 rounded-full bg-[var(--gold)] px-3 py-1 text-xs font-bold text-[var(--gold-bright)]">
                   Today&apos;s Special
                 </span>
               )}
@@ -1091,7 +1106,7 @@ export function CustomerMenu({
                 <button
                   type="button"
                   onClick={() => setDetailQty((q) => q + 1)}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--gold)] text-black"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--gold)] text-[var(--gold-bright)]"
                 >
                   <Plus className="h-4 w-4" />
                 </button>
@@ -1150,7 +1165,7 @@ export function CustomerMenu({
                   });
                   setDetailItem(null);
                 }}
-                className="w-full rounded-md bg-[var(--gold)] py-3 text-sm font-bold uppercase tracking-wider text-black"
+                className="w-full rounded-md bg-[var(--gold)] py-3 text-sm font-bold uppercase tracking-wider text-[var(--gold-bright)]"
               >
                 Add to Cart
               </button>

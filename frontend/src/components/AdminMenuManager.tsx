@@ -62,17 +62,17 @@ function parseOptions(raw: string | null): OptionsData {
 function toast(msg: string) {
   const el = document.createElement("div");
   el.className =
-    "fixed bottom-6 left-1/2 z-[100] -translate-x-1/2 rounded-full border border-[#d4a017]/40 bg-[#141414] px-4 py-2 text-xs text-[#e8c547] shadow-lg pointer-events-none";
+    "fixed bottom-6 left-1/2 z-[100] -translate-x-1/2 rounded-full border border-[var(--gold)]/40 bg-[var(--bg-card)] px-4 py-2 text-xs text-[var(--gold-bright)] shadow-lg pointer-events-none";
   el.textContent = msg;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 1800);
 }
 
 const inputClass =
-  "w-full rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-3 py-2.5 text-sm text-white outline-none placeholder:text-[#666] focus:border-[#d4a017]";
+  "w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-dim)] focus:border-[var(--gold)]";
 
-const btnGold = "rounded-lg bg-[#d4a017] px-3 py-2 text-xs font-bold uppercase tracking-wider text-black transition hover:bg-[#e8c547] disabled:opacity-50";
-const btnOutline = "rounded-lg border border-[#2a2a2a] px-3 py-2 text-xs font-medium text-[#ccc] transition hover:border-[#d4a017]/50 hover:text-[#e8c547] disabled:opacity-50";
+const btnGold = "rounded-lg bg-[var(--gold)] px-3 py-2 text-xs font-bold uppercase tracking-wider text-[var(--gold-bright)] transition hover:opacity-90 disabled:opacity-50";
+const btnOutline = "rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--text-muted)] transition hover:border-[var(--gold)]/50 hover:text-[var(--gold-bright)] disabled:opacity-50";
 const btnDanger = "rounded-lg border border-red-500/30 px-3 py-2 text-xs font-medium text-red-400 transition hover:bg-red-500/10 disabled:opacity-50";
 
 export function AdminMenuManager() {
@@ -355,7 +355,7 @@ export function AdminMenuManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-[#d4a017]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--gold)]" />
       </div>
     );
   }
@@ -372,13 +372,13 @@ export function AdminMenuManager() {
         </div>
       )}
 
-      <div className="mb-6 flex items-center gap-4 border-b border-[#2a2a2a]">
+      <div className="mb-6 flex items-center gap-4 border-b border-[var(--border)]">
         <button
           onClick={() => setTab("categories")}
           className={`border-b-2 px-4 py-3 text-sm font-medium transition ${
             tab === "categories"
-              ? "border-[#d4a017] text-[#e8c547]"
-              : "border-transparent text-[#888] hover:text-[#ccc]"
+              ? "border-[var(--gold)] text-[var(--gold-bright)]"
+              : "border-transparent text-[var(--text-dim)] hover:text-[var(--text-muted)]"
           }`}
         >
           <Tag className="mr-2 inline h-4 w-4" />
@@ -388,8 +388,8 @@ export function AdminMenuManager() {
           onClick={() => setTab("items")}
           className={`border-b-2 px-4 py-3 text-sm font-medium transition ${
             tab === "items"
-              ? "border-[#d4a017] text-[#e8c547]"
-              : "border-transparent text-[#888] hover:text-[#ccc]"
+              ? "border-[var(--gold)] text-[var(--gold-bright)]"
+              : "border-transparent text-[var(--text-dim)] hover:text-[var(--text-muted)]"
           }`}
         >
           <Zap className="mr-2 inline h-4 w-4" />
@@ -428,7 +428,7 @@ export function AdminMenuManager() {
             {categories.map((cat) => (
               <div
                 key={cat.id}
-                className="flex items-center gap-3 rounded-lg border border-[#2a2a2a] bg-[#141414] px-4 py-3"
+                className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3"
               >
                 <GripVertical className="h-4 w-4 text-[#666]" />
                 {editingCatId === cat.id ? (
@@ -459,7 +459,7 @@ export function AdminMenuManager() {
                 ) : (
                   <>
                     <span className="flex-1 text-sm font-medium text-white">{cat.name}</span>
-                    <span className="rounded-full bg-[#d4a017]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#e8c547]">
+                    <span className="rounded-full bg-[var(--gold)]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[var(--gold-bright)]">
                       {cat.itemCount} items
                     </span>
                     <span className="text-xs text-[#666]">#{cat.sortOrder}</span>
@@ -487,17 +487,17 @@ export function AdminMenuManager() {
       {tab === "items" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-[#888]">{items.length} items</p>
+            <p className="text-sm text-[var(--text-dim)]">{items.length} items</p>
             <button onClick={openAddItemModal} className={btnGold}>
               <Plus className="mr-1 inline h-4 w-4" />
               Add Item
             </button>
           </div>
 
-          <div className="overflow-x-auto rounded-lg border border-[#2a2a2a]">
+          <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-[#2a2a2a] bg-[#0e0e0e]">
+                <tr className="border-b border-[var(--border)] bg-[var(--bg-elevated)]">
                   <th className="px-4 py-3 font-medium text-[#aaa]">Item</th>
                   <th className="px-4 py-3 font-medium text-[#aaa]">Category</th>
                   <th className="px-4 py-3 font-medium text-[#aaa]">Price</th>
@@ -513,7 +513,7 @@ export function AdminMenuManager() {
                   <tr key={item.id} className="border-b border-[#1a1a1a] transition hover:bg-[#0e0e0e]">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[#2a2a2a] bg-[#0a0a0a]">
+                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)]">
                           {item.imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
@@ -531,8 +531,8 @@ export function AdminMenuManager() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-[#ccc]">{item.category.name}</td>
-                    <td className="px-4 py-3 font-medium text-[#e8c547]">
+                    <td className="px-4 py-3 text-[var(--text-muted)]">{item.category.name}</td>
+                    <td className="px-4 py-3 font-medium text-[var(--gold-bright)]">
                       Rs. {new Intl.NumberFormat("en-PK").format(Math.round(item.price))}
                     </td>
                     <td className="px-4 py-3">
@@ -579,12 +579,12 @@ export function AdminMenuManager() {
       {showItemModal && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/75 pt-10 pb-10">
           <button className="fixed inset-0" aria-label="Close" onClick={() => setShowItemModal(false)} />
-          <div className="relative z-10 w-full max-w-lg rounded-xl border border-[#2a2a2a] bg-[#0e0e0e]">
-            <div className="flex items-center justify-between border-b border-[#2a2a2a] px-6 py-4">
-              <h2 className="font-display text-lg text-[#e8c547]">
+          <div className="relative z-10 w-full max-w-lg rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)]">
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
+              <h2 className="font-display text-lg text-[var(--gold-bright)]">
                 {editingItem ? "Edit Item" : "Add Item"}
               </h2>
-              <button onClick={() => setShowItemModal(false)} className="text-[#888] hover:text-white">
+              <button onClick={() => setShowItemModal(false)} className="text-[var(--text-dim)] hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -650,7 +650,7 @@ export function AdminMenuManager() {
               <div className="text-sm">
                 <span className="mb-1 block text-[#aaa]">Image</span>
                 <div className="flex items-center gap-3">
-                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-[#2a2a2a] bg-[#0a0a0a]">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)]">
                     {itemImageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={itemImageUrl} alt="Preview" className="h-full w-full object-cover" />
@@ -667,7 +667,7 @@ export function AdminMenuManager() {
                       placeholder="/uploads/menu/..."
                       className={inputClass}
                     />
-                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-3 py-2 text-xs text-[#888] transition hover:border-[#d4a017]/50 hover:text-[#e8c547]">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-xs text-[var(--text-dim)] transition hover:border-[var(--gold)]/50 hover:text-[var(--gold-bright)]">
                       <Upload className="h-3.5 w-3.5" />
                       {uploadingImage ? "Uploading..." : "Upload file"}
                       <input
@@ -728,7 +728,7 @@ export function AdminMenuManager() {
                 <button
                   type="button"
                   onClick={() => setItemVariants([...itemVariants, { name: "", priceAdj: 0 }])}
-                  className="text-xs text-[#d4a017] hover:text-[#e8c547]"
+                  className="text-xs text-[var(--gold)] hover:text-[var(--gold-bright)]"
                 >
                   + Add Variant
                 </button>
@@ -772,7 +772,7 @@ export function AdminMenuManager() {
                 <button
                   type="button"
                   onClick={() => setItemAddOns([...itemAddOns, { name: "", price: 0 }])}
-                  className="text-xs text-[#d4a017] hover:text-[#e8c547]"
+                  className="text-xs text-[var(--gold)] hover:text-[var(--gold-bright)]"
                 >
                   + Add Add-on
                 </button>
@@ -789,7 +789,7 @@ export function AdminMenuManager() {
                 />
               </label>
 
-              <div className="flex items-center gap-3 border-t border-[#2a2a2a] pt-4">
+              <div className="flex items-center gap-3 border-t border-[var(--border)] pt-4">
                 <button type="submit" disabled={savingItem || !itemName.trim() || !itemPrice || !itemCategoryId} className={btnGold}>
                   {savingItem ? <Loader2 className="mr-1 inline h-4 w-4 animate-spin" /> : <Check className="mr-1 inline h-4 w-4" />}
                   {editingItem ? "Save Changes" : "Create Item"}
@@ -811,7 +811,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className={`relative h-5 w-9 rounded-full transition ${checked ? "bg-[#d4a017]" : "bg-[#333]"}`}
+      className={`relative h-5 w-9 rounded-full transition ${checked ? "bg-[var(--gold)]" : "bg-[var(--border-strong)]"}`}
     >
       <span
         className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition ${checked ? "left-[18px]" : "left-0.5"}`}
@@ -830,11 +830,11 @@ function ToggleOption({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm text-[#ccc]">
+    <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-muted)]">
       <button
         type="button"
         onClick={() => onChange(!checked)}
-        className={`relative h-5 w-9 shrink-0 rounded-full transition ${checked ? "bg-[#d4a017]" : "bg-[#333]"}`}
+        className={`relative h-5 w-9 shrink-0 rounded-full transition ${checked ? "bg-[var(--gold)]" : "bg-[var(--border-strong)]"}`}
       >
         <span
           className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition ${checked ? "left-[18px]" : "left-0.5"}`}
