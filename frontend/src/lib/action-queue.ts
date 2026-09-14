@@ -91,6 +91,23 @@ export async function enqueueAction(
     store.put(action);
   });
 
+  // Ask the browser to wake us when connectivity returns
+  try {
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      const syncManager = (
+        reg as ServiceWorkerRegistration & {
+          sync?: { register: (tag: string) => Promise<void> };
+        }
+      ).sync;
+      if (syncManager?.register) {
+        await syncManager.register("sync-offline-actions");
+      }
+    }
+  } catch {
+    // Background Sync is optional
+  }
+
   return action;
 }
 
@@ -271,17 +288,20 @@ async function syncOne(action: QueuedAction): Promise<"ok" | "retry" | "drop"> {
 
 /** Sync all queued actions. Safe to call often; concurrent calls coalesce. */
 export function syncPendingActions(): Promise<void> {
-  if (typeof navigator !== "undefined" && !navigator.onLine) {
-    return Promise.resolve();
-  }
   if (syncInFlight) return syncInFlight;
 
   syncInFlight = (async () => {
     try {
+      // Still attempt sync even if navigator.onLine is false — it can be wrong.
       const pending = await listPendingActions();
       for (const action of pending) {
-        if (typeof navigator !== "undefined" && !navigator.onLine) break;
-        await syncOne(action);
+        const result = await syncOne(action);
+        if (result === "retry") {
+          // Network likely down — stop burning retries this cycle
+          const stillOffline =
+            typeof navigator !== "undefined" && navigator.onLine === false;
+          if (stillOffline) break;
+        }
       }
     } finally {
       syncInFlight = null;

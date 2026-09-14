@@ -3,7 +3,7 @@
  * Cache versioning: bump CACHE_VERSION when SW logic/shell changes.
  * Menu snapshots live in IndexedDB (managed by the app) and are NOT wiped here.
  */
-const CACHE_VERSION = "dm-v1";
+const CACHE_VERSION = "dm-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -61,6 +61,29 @@ self.addEventListener("message", (event) => {
 
   if (data.type === "CACHE_URLS" && Array.isArray(data.urls)) {
     event.waitUntil(cacheUrls(data.urls.filter((u) => typeof u === "string")));
+  }
+});
+
+/** Ask open pages to flush the IndexedDB action queue when connectivity returns */
+async function notifyClientsToSync() {
+  const clientsList = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  });
+  for (const client of clientsList) {
+    client.postMessage({ type: "SYNC_OFFLINE_ACTIONS" });
+  }
+}
+
+self.addEventListener("sync", (event) => {
+  if (event.tag === "sync-offline-actions") {
+    event.waitUntil(notifyClientsToSync());
+  }
+});
+
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag === "sync-offline-actions") {
+    event.waitUntil(notifyClientsToSync());
   }
 });
 

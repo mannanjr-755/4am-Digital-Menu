@@ -28,6 +28,11 @@ import {
   syncPendingActions,
 } from "@/lib/action-queue";
 import { newActionId } from "@/lib/offline-db";
+import {
+  fetchWithTimeout,
+  isBrowserOffline,
+  shouldQueueFailedResponse,
+} from "@/lib/offline-actions";
 
 const FEEDBACK_URL =
   "https://www.google.com/search?q=Le+Bon+Panier+Cafe+menu&rlz=1C1GCEA_en-GBPK1168PK1168&oq=Le&gs_lcrp=EgZjaHJvbWUqBggEEEUYOzIGCAAQRRg8MgoIARAAGLEDGIAEMgoIAhAAGLEDGIAEMgYIAxBFGDsyBggEEEUYOzIGCAUQRRg5MgYIBhBFGDwyBggHEEUYPdIBCDcwOTJqMGo3qAIAsAIA&sourceid=chrome&source=chrome.ob&ie=UTF-8#lrd=0x3eb33d003c2e03c3:0x8cf7ef6c98453b52,3,,,,";
@@ -315,83 +320,65 @@ export function CustomerMenu({
       type,
     };
 
-    const successMessage =
+    const successFlash =
       type === "WAITER"
-        ? `Table No. ${tableNumber} needs a waiter.`
-        : `Table No. ${tableNumber} needs the bill.`;
+        ? "Waiter request sent successfully."
+        : "Bill request sent successfully.";
+    const failFlash =
+      type === "WAITER"
+        ? "Could not send waiter request. Please try again."
+        : "Could not send bill request. Please try again.";
+
+    const queueLocally = async (id?: string) => {
+      await enqueueAction({
+        ...(id ? { id } : {}),
+        restaurantSlug: restaurant.slug,
+        tableNumber,
+        type,
+        payload,
+      });
+      flash(successFlash);
+      // Attempt sync in case connectivity returned mid-action
+      void syncPendingActions();
+    };
 
     try {
-      const offline = typeof navigator !== "undefined" && !navigator.onLine;
-      if (offline) {
-        await enqueueAction({
-          restaurantSlug: restaurant.slug,
-          tableNumber,
-          type,
-          payload,
-        });
-        flash(
-          type === "WAITER"
-            ? "Waiter request sent successfully."
-            : "Bill request sent successfully."
-        );
+      // Always try the network first (navigator.onLine is unreliable).
+      // If the device is truly offline, fetch fails and we queue.
+      if (isBrowserOffline()) {
+        await queueLocally();
         return;
       }
 
       const clientActionId = newActionId();
-      const res = await fetch("/api/table-requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payload, clientActionId }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        // Network-ish failure while "online" — queue for retry
-        if (!res.status || res.status >= 500) {
-          await enqueueAction({
-            id: clientActionId,
-            restaurantSlug: restaurant.slug,
-            tableNumber,
-            type,
-            payload,
-          });
-          flash(
-            type === "WAITER"
-              ? "Waiter request sent successfully."
-              : "Bill request sent successfully."
-          );
-          return;
-        }
-        flash(
-          type === "WAITER"
-            ? "Could not send waiter request. Please try again."
-            : "Could not send bill request. Please try again."
-        );
+      let res: Response | null = null;
+      try {
+        res = await fetchWithTimeout("/api/table-requests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, clientActionId }),
+        });
+      } catch {
+        await queueLocally(clientActionId);
         return;
       }
-      flash(
-        type === "WAITER"
-          ? data.request?.message || successMessage
-          : data.request?.message || successMessage
-      );
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (shouldQueueFailedResponse(res)) {
+          await queueLocally(clientActionId);
+          return;
+        }
+        flash(failFlash);
+        return;
+      }
+      // Always show human-readable copy — never raw DB message (may contain legacy junk)
+      flash(successFlash);
     } catch {
       try {
-        await enqueueAction({
-          restaurantSlug: restaurant.slug,
-          tableNumber,
-          type,
-          payload,
-        });
-        flash(
-          type === "WAITER"
-            ? "Waiter request sent successfully."
-            : "Bill request sent successfully."
-        );
+        await queueLocally();
       } catch {
-        flash(
-          type === "WAITER"
-            ? "Could not send waiter request. Please try again."
-            : "Could not send bill request. Please try again."
-        );
+        flash(failFlash);
       }
     } finally {
       setServiceBusy(null);
@@ -549,43 +536,62 @@ export function CustomerMenu({
     };
 
     setSubmitting(true);
+
+    const finishQueued = async (actionId: string) => {
+      setCart([]);
+      setShowCart(false);
+      flash("Order placed successfully. It will sync when you're back online.");
+      void syncPendingActions();
+      router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/pending-${actionId}`);
+    };
+
     try {
-      const offline = typeof navigator !== "undefined" && !navigator.onLine;
-      if (offline) {
+      if (isBrowserOffline()) {
         const action = await enqueueAction({
           restaurantSlug: restaurant.slug,
           tableNumber: chosenTable,
           type: "PLACE_ORDER",
           payload,
         });
-        setCart([]);
-        setShowCart(false);
-        flash("Order placed successfully. It will sync when you're back online.");
-        router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/pending-${action.id}`);
+        await finishQueued(action.id);
         return;
       }
 
       const clientActionId = newActionId();
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          restaurantSlug: payload.restaurantSlug,
-          tableNumber: payload.tableNumber,
-          customerName: payload.customerName,
-          customerEmail: payload.customerEmail,
-          customerPhone: payload.customerPhone,
-          specialRequest: payload.specialRequest,
-          items: payload.items.map((i) => ({
-            menuItemId: i.menuItemId,
-            quantity: i.quantity,
-          })),
-          clientActionId,
-        }),
-      });
+      let res: Response | null = null;
+      try {
+        res = await fetchWithTimeout("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            restaurantSlug: payload.restaurantSlug,
+            tableNumber: payload.tableNumber,
+            customerName: payload.customerName,
+            customerEmail: payload.customerEmail,
+            customerPhone: payload.customerPhone,
+            specialRequest: payload.specialRequest,
+            items: payload.items.map((i) => ({
+              menuItemId: i.menuItemId,
+              quantity: i.quantity,
+            })),
+            clientActionId,
+          }),
+        });
+      } catch {
+        await enqueueAction({
+          id: clientActionId,
+          restaurantSlug: restaurant.slug,
+          tableNumber: chosenTable,
+          type: "PLACE_ORDER",
+          payload,
+        });
+        await finishQueued(clientActionId);
+        return;
+      }
+
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (res.status >= 500 || res.status === 0) {
+        if (shouldQueueFailedResponse(res)) {
           await enqueueAction({
             id: clientActionId,
             restaurantSlug: restaurant.slug,
@@ -593,15 +599,15 @@ export function CustomerMenu({
             type: "PLACE_ORDER",
             payload,
           });
-          setCart([]);
-          setShowCart(false);
-          flash("Order placed successfully. It will sync when you're back online.");
-          router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/pending-${clientActionId}`);
+          await finishQueued(clientActionId);
           return;
         }
         setError(data.error || "Could not place order.");
         return;
       }
+      // Online success → order is immediately in CRM/DB
+      setCart([]);
+      setShowCart(false);
       router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/${data.order.id}`);
     } catch {
       try {
@@ -611,10 +617,7 @@ export function CustomerMenu({
           type: "PLACE_ORDER",
           payload,
         });
-        setCart([]);
-        setShowCart(false);
-        flash("Order placed successfully. It will sync when you're back online.");
-        router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/pending-${action.id}`);
+        await finishQueued(action.id);
       } catch {
         setError("Network error. Please try again.");
       }
@@ -653,40 +656,62 @@ export function CustomerMenu({
     };
 
     setSubmitting(true);
+
+    const finishQueued = async () => {
+      setCart([]);
+      setShowCart(false);
+      flash("Order updated. Changes will sync when you're back online.");
+      void syncPendingActions();
+      router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/${editingOrderId}?updated=1`);
+    };
+
     try {
-      const offline = typeof navigator !== "undefined" && !navigator.onLine;
-      if (offline) {
+      if (isBrowserOffline()) {
         await enqueueAction({
           restaurantSlug: restaurant.slug,
           tableNumber: chosenTable,
           type: "UPDATE_ORDER",
           payload,
         });
-        setCart([]);
-        setShowCart(false);
-        flash("Order updated. Changes will sync when you're back online.");
-        router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/${editingOrderId}?updated=1`);
+        await finishQueued();
         return;
       }
 
       const clientActionId = newActionId();
-      const res = await fetch(`/api/orders/${editingOrderId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          restaurantSlug: payload.restaurantSlug,
-          tableNumber: payload.tableNumber,
-          customerName: payload.customerName,
-          customerEmail: payload.customerEmail,
-          customerPhone: payload.customerPhone,
-          specialRequest: payload.specialRequest,
-          items: payload.items,
-          clientActionId,
-        }),
-      });
+      let res: Response | null = null;
+      try {
+        res = await fetchWithTimeout(`/api/orders/${editingOrderId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            restaurantSlug: payload.restaurantSlug,
+            tableNumber: payload.tableNumber,
+            customerName: payload.customerName,
+            customerEmail: payload.customerEmail,
+            customerPhone: payload.customerPhone,
+            specialRequest: payload.specialRequest,
+            items: payload.items.map((i) => ({
+              menuItemId: i.menuItemId,
+              quantity: i.quantity,
+            })),
+            clientActionId,
+          }),
+        });
+      } catch {
+        await enqueueAction({
+          id: clientActionId,
+          restaurantSlug: restaurant.slug,
+          tableNumber: chosenTable,
+          type: "UPDATE_ORDER",
+          payload,
+        });
+        await finishQueued();
+        return;
+      }
+
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (res.status >= 500 || res.status === 0) {
+        if (shouldQueueFailedResponse(res)) {
           await enqueueAction({
             id: clientActionId,
             restaurantSlug: restaurant.slug,
@@ -694,15 +719,14 @@ export function CustomerMenu({
             type: "UPDATE_ORDER",
             payload,
           });
-          setCart([]);
-          setShowCart(false);
-          flash("Order updated. Changes will sync when you're back online.");
-          router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/${editingOrderId}?updated=1`);
+          await finishQueued();
           return;
         }
         setError(data.error || "Could not update order.");
         return;
       }
+      setCart([]);
+      setShowCart(false);
       router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/${editingOrderId}?updated=1`);
     } catch {
       try {
@@ -712,10 +736,7 @@ export function CustomerMenu({
           type: "UPDATE_ORDER",
           payload,
         });
-        setCart([]);
-        setShowCart(false);
-        flash("Order updated. Changes will sync when you're back online.");
-        router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/${editingOrderId}?updated=1`);
+        await finishQueued();
       } catch {
         setError("Network error. Please try again.");
       }
