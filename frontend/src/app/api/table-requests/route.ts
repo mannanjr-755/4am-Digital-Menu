@@ -6,7 +6,14 @@ const requestSchema = z.object({
   restaurantSlug: z.string().min(1),
   tableNumber: z.coerce.number().int().positive(),
   type: z.enum(["WAITER", "BILL"]),
+  /** Offline queue id — embedded for idempotent sync retries (no schema change) */
+  clientActionId: z.string().trim().min(1).max(80).optional().nullable(),
 });
+
+function withActionMarker(message: string, clientActionId?: string | null) {
+  if (!clientActionId) return message;
+  return `${message}\u200B${clientActionId}`;
+}
 
 export async function POST(request: Request) {
   try {
@@ -17,7 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
-    const { restaurantSlug, tableNumber, type } = parsed.data;
+    const { restaurantSlug, tableNumber, type, clientActionId } = parsed.data;
 
     const restaurant = await prisma.restaurant.findUnique({
       where: { slug: restaurantSlug },
@@ -40,10 +47,41 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Table not found or inactive" }, { status: 404 });
     }
 
-    const message =
+    // Idempotent replay: same clientActionId already stored on a prior sync
+    if (clientActionId) {
+      const marker = `\u200B${clientActionId}`;
+      const existing = await prisma.tableRequest.findFirst({
+        where: {
+          restaurantId: restaurant.id,
+          tableId: table.id,
+          type,
+          message: { endsWith: marker },
+        },
+        orderBy: { createdAt: "desc" },
+        include: { table: { select: { tableNumber: true } } },
+      });
+      if (existing) {
+        return NextResponse.json(
+          {
+            request: {
+              id: existing.id,
+              type: existing.type,
+              message: existing.message.split("\u200B")[0],
+              status: existing.status,
+              tableNumber: existing.table.tableNumber,
+              createdAt: existing.createdAt.toISOString(),
+            },
+          },
+          { status: 200 }
+        );
+      }
+    }
+
+    const baseMessage =
       type === "WAITER"
         ? `Table No. ${table.tableNumber} needs a waiter.`
         : `Table No. ${table.tableNumber} needs the bill.`;
+    const message = withActionMarker(baseMessage, clientActionId);
 
     const tableRequest = await prisma.tableRequest.create({
       data: {
@@ -63,7 +101,7 @@ export async function POST(request: Request) {
         request: {
           id: tableRequest.id,
           type: tableRequest.type,
-          message: tableRequest.message,
+          message: baseMessage,
           status: tableRequest.status,
           tableNumber: tableRequest.table.tableNumber,
           createdAt: tableRequest.createdAt.toISOString(),

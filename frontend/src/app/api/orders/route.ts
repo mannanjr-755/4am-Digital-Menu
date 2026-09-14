@@ -26,6 +26,8 @@ const placeOrderSchema = z.object({
       })
     )
     .min(1),
+  /** Offline queue id — stored as sessionId for idempotent retries */
+  clientActionId: z.string().trim().min(1).max(80).optional().nullable(),
 });
 
 export async function POST(request: Request) {
@@ -48,6 +50,7 @@ export async function POST(request: Request) {
       customerEmail,
       specialRequest,
       items,
+      clientActionId,
     } = parsed.data;
 
     const restaurant = await prisma.restaurant.findUnique({
@@ -56,6 +59,24 @@ export async function POST(request: Request) {
 
     if (!restaurant) {
       return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
+    }
+
+    // Idempotent replay from offline sync
+    if (clientActionId) {
+      const existing = await prisma.order.findFirst({
+        where: {
+          restaurantId: restaurant.id,
+          sessionId: clientActionId,
+        },
+        include: {
+          items: true,
+          table: true,
+          restaurant: { select: { name: true, slug: true } },
+        },
+      });
+      if (existing) {
+        return NextResponse.json({ order: existing }, { status: 200 });
+      }
     }
 
     const table = await prisma.table.findUnique({
@@ -113,6 +134,7 @@ export async function POST(request: Request) {
         customerPhone: customerPhone || null,
         customerEmail: customerEmail || null,
         specialRequest: specialRequest?.trim() || null,
+        sessionId: clientActionId || null,
         status: "NEW",
         total,
         items: { create: orderItemsData },

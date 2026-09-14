@@ -4,9 +4,7 @@
  * Does not store auth tokens, passwords, or admin data.
  */
 
-const DB_NAME = "digital-menu-offline";
-const DB_VERSION = 1;
-const STORE = "menuSnapshots";
+import { MENU_STORE, openOfflineDb } from "@/lib/offline-db";
 
 export type OfflineMenuItem = {
   id: string;
@@ -54,24 +52,6 @@ export function menuCacheKey(slug: string, tableNumber: number): string {
   return `${slug}/t/${tableNumber}`;
 }
 
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (typeof indexedDB === "undefined") {
-      reject(new Error("IndexedDB unavailable"));
-      return;
-    }
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onerror = () => reject(req.error ?? new Error("IndexedDB open failed"));
-    req.onsuccess = () => resolve(req.result);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE, { keyPath: "key" });
-      }
-    };
-  });
-}
-
 export async function saveMenuSnapshot(
   snapshot: Omit<MenuSnapshot, "key" | "updatedAt"> & { key?: string }
 ): Promise<void> {
@@ -85,12 +65,12 @@ export async function saveMenuSnapshot(
       tableNumber: snapshot.tableNumber,
       updatedAt: new Date().toISOString(),
     };
-    const db = await openDb();
+    const db = await openOfflineDb();
     await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE, "readwrite");
+      const tx = db.transaction(MENU_STORE, "readwrite");
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error ?? new Error("save failed"));
-      tx.objectStore(STORE).put(record);
+      tx.objectStore(MENU_STORE).put(record);
     });
     db.close();
   } catch {
@@ -100,10 +80,10 @@ export async function saveMenuSnapshot(
 
 export async function loadMenuSnapshot(key: string): Promise<MenuSnapshot | null> {
   try {
-    const db = await openDb();
+    const db = await openOfflineDb();
     const result = await new Promise<MenuSnapshot | null>((resolve, reject) => {
-      const tx = db.transaction(STORE, "readonly");
-      const req = tx.objectStore(STORE).get(key);
+      const tx = db.transaction(MENU_STORE, "readonly");
+      const req = tx.objectStore(MENU_STORE).get(key);
       req.onsuccess = () => resolve((req.result as MenuSnapshot) ?? null);
       req.onerror = () => reject(req.error ?? new Error("load failed"));
     });

@@ -22,6 +22,12 @@ import {
   requestCacheUrls,
   saveMenuSnapshot,
 } from "@/lib/menu-cache";
+import {
+  enqueueAction,
+  startActionQueueSync,
+  syncPendingActions,
+} from "@/lib/action-queue";
+import { newActionId } from "@/lib/offline-db";
 
 const FEEDBACK_URL =
   "https://www.google.com/search?q=Le+Bon+Panier+Cafe+menu&rlz=1C1GCEA_en-GBPK1168PK1168&oq=Le&gs_lcrp=EgZjaHJvbWUqBggEEEUYOzIGCAAQRRg8MgoIARAAGLEDGIAEMgoIAhAAGLEDGIAEMgYIAxBFGDsyBggEEEUYOzIGCAUQRRg5MgYIBhBFGDwyBggHEEUYPdIBCDcwOTJqMGo3qAIAsAIA&sourceid=chrome&source=chrome.ob&ie=UTF-8#lrd=0x3eb33d003c2e03c3:0x8cf7ef6c98453b52,3,,,,";
@@ -174,6 +180,11 @@ export function CustomerMenu({
     requestCacheUrls(collectMenuImageUrls(categories, restaurant));
   }, [restaurant, categories, tableNumber]);
 
+  // Sync queued offline actions when connectivity returns / on mount.
+  useEffect(() => {
+    return startActionQueueSync();
+  }, []);
+
   // Poll menu while online; pause when offline to avoid noisy retries.
   useEffect(() => {
     let cancelled = false;
@@ -210,6 +221,7 @@ export function CustomerMenu({
 
     function handleOnline() {
       startPolling();
+      void syncPendingActions();
     }
 
     function handleOffline() {
@@ -295,27 +307,60 @@ export function CustomerMenu({
 
   async function sendTableRequest(type: "WAITER" | "BILL") {
     if (serviceBusy) return;
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      flash(
-        type === "WAITER"
-          ? "You are offline. Connect to call a waiter."
-          : "You are offline. Connect to request the bill."
-      );
-      return;
-    }
     setServiceBusy(type);
+
+    const payload = {
+      restaurantSlug: restaurant.slug,
+      tableNumber,
+      type,
+    };
+
+    const successMessage =
+      type === "WAITER"
+        ? `Table No. ${tableNumber} needs a waiter.`
+        : `Table No. ${tableNumber} needs the bill.`;
+
     try {
-      const res = await fetch("/api/table-requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const offline = typeof navigator !== "undefined" && !navigator.onLine;
+      if (offline) {
+        await enqueueAction({
           restaurantSlug: restaurant.slug,
           tableNumber,
           type,
-        }),
+          payload,
+        });
+        flash(
+          type === "WAITER"
+            ? "Waiter request sent successfully."
+            : "Bill request sent successfully."
+        );
+        return;
+      }
+
+      const clientActionId = newActionId();
+      const res = await fetch("/api/table-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, clientActionId }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        // Network-ish failure while "online" — queue for retry
+        if (!res.status || res.status >= 500) {
+          await enqueueAction({
+            id: clientActionId,
+            restaurantSlug: restaurant.slug,
+            tableNumber,
+            type,
+            payload,
+          });
+          flash(
+            type === "WAITER"
+              ? "Waiter request sent successfully."
+              : "Bill request sent successfully."
+          );
+          return;
+        }
         flash(
           type === "WAITER"
             ? "Could not send waiter request. Please try again."
@@ -325,15 +370,29 @@ export function CustomerMenu({
       }
       flash(
         type === "WAITER"
-          ? data.request?.message || "Waiter request sent successfully."
-          : data.request?.message || "Bill request sent successfully."
+          ? data.request?.message || successMessage
+          : data.request?.message || successMessage
       );
     } catch {
-      flash(
-        type === "WAITER"
-          ? "Could not send waiter request. Please try again."
-          : "Could not send bill request. Please try again."
-      );
+      try {
+        await enqueueAction({
+          restaurantSlug: restaurant.slug,
+          tableNumber,
+          type,
+          payload,
+        });
+        flash(
+          type === "WAITER"
+            ? "Waiter request sent successfully."
+            : "Bill request sent successfully."
+        );
+      } catch {
+        flash(
+          type === "WAITER"
+            ? "Could not send waiter request. Please try again."
+            : "Could not send bill request. Please try again."
+        );
+      }
     } finally {
       setServiceBusy(null);
     }
@@ -463,9 +522,6 @@ export function CustomerMenu({
 
   async function placeOrder() {
     setError(null);
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      return setError("You are offline. Connect to place your order.");
-    }
     if (!customerName.trim()) return setError("Please enter your name.");
     if (customerEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
       return setError("Please enter a valid email address.");
@@ -477,29 +533,91 @@ export function CustomerMenu({
     }
     if (!cart.length) return setError("Your cart is empty.");
 
+    const payload = {
+      restaurantSlug: restaurant.slug,
+      tableNumber: chosenTable,
+      customerName: customerName.trim(),
+      customerEmail: customerEmail.trim() || null,
+      customerPhone: customerPhone.trim() || null,
+      specialRequest: specialRequest.trim() || null,
+      items: cart.map((l) => ({
+        menuItemId: l.menuItemId,
+        quantity: l.quantity,
+        itemName: l.name,
+        unitPrice: l.price,
+      })),
+    };
+
     setSubmitting(true);
     try {
+      const offline = typeof navigator !== "undefined" && !navigator.onLine;
+      if (offline) {
+        const action = await enqueueAction({
+          restaurantSlug: restaurant.slug,
+          tableNumber: chosenTable,
+          type: "PLACE_ORDER",
+          payload,
+        });
+        setCart([]);
+        setShowCart(false);
+        flash("Order placed successfully. It will sync when you're back online.");
+        router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/pending-${action.id}`);
+        return;
+      }
+
+      const clientActionId = newActionId();
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          restaurantSlug: restaurant.slug,
-          tableNumber: chosenTable,
-          customerName: customerName.trim(),
-          customerEmail: customerEmail.trim() || null,
-          customerPhone: customerPhone.trim() || null,
-          specialRequest: specialRequest.trim() || null,
-          items: cart.map((l) => ({ menuItemId: l.menuItemId, quantity: l.quantity })),
+          restaurantSlug: payload.restaurantSlug,
+          tableNumber: payload.tableNumber,
+          customerName: payload.customerName,
+          customerEmail: payload.customerEmail,
+          customerPhone: payload.customerPhone,
+          specialRequest: payload.specialRequest,
+          items: payload.items.map((i) => ({
+            menuItemId: i.menuItemId,
+            quantity: i.quantity,
+          })),
+          clientActionId,
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (res.status >= 500 || res.status === 0) {
+          await enqueueAction({
+            id: clientActionId,
+            restaurantSlug: restaurant.slug,
+            tableNumber: chosenTable,
+            type: "PLACE_ORDER",
+            payload,
+          });
+          setCart([]);
+          setShowCart(false);
+          flash("Order placed successfully. It will sync when you're back online.");
+          router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/pending-${clientActionId}`);
+          return;
+        }
         setError(data.error || "Could not place order.");
         return;
       }
       router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/${data.order.id}`);
     } catch {
-      setError("Network error. Please try again.");
+      try {
+        const action = await enqueueAction({
+          restaurantSlug: restaurant.slug,
+          tableNumber: chosenTable,
+          type: "PLACE_ORDER",
+          payload,
+        });
+        setCart([]);
+        setShowCart(false);
+        flash("Order placed successfully. It will sync when you're back online.");
+        router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/pending-${action.id}`);
+      } catch {
+        setError("Network error. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -518,29 +636,89 @@ export function CustomerMenu({
     if (!cart.length) return setError("Your cart is empty.");
     if (!editingOrderId) return setError("No order to update.");
 
+    const payload = {
+      orderId: editingOrderId,
+      restaurantSlug: restaurant.slug,
+      tableNumber: chosenTable,
+      customerName: customerName.trim(),
+      customerEmail: customerEmail.trim() || null,
+      customerPhone: customerPhone.trim() || null,
+      specialRequest: specialRequest.trim() || null,
+      items: cart.map((l) => ({
+        menuItemId: l.menuItemId,
+        quantity: l.quantity,
+        itemName: l.name,
+        unitPrice: l.price,
+      })),
+    };
+
     setSubmitting(true);
     try {
+      const offline = typeof navigator !== "undefined" && !navigator.onLine;
+      if (offline) {
+        await enqueueAction({
+          restaurantSlug: restaurant.slug,
+          tableNumber: chosenTable,
+          type: "UPDATE_ORDER",
+          payload,
+        });
+        setCart([]);
+        setShowCart(false);
+        flash("Order updated. Changes will sync when you're back online.");
+        router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/${editingOrderId}?updated=1`);
+        return;
+      }
+
+      const clientActionId = newActionId();
       const res = await fetch(`/api/orders/${editingOrderId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          restaurantSlug: restaurant.slug,
-          tableNumber: chosenTable,
-          customerName: customerName.trim(),
-          customerEmail: customerEmail.trim() || null,
-          customerPhone: customerPhone.trim() || null,
-          specialRequest: specialRequest.trim() || null,
-          items: cart.map((l) => ({ menuItemId: l.menuItemId, quantity: l.quantity })),
+          restaurantSlug: payload.restaurantSlug,
+          tableNumber: payload.tableNumber,
+          customerName: payload.customerName,
+          customerEmail: payload.customerEmail,
+          customerPhone: payload.customerPhone,
+          specialRequest: payload.specialRequest,
+          items: payload.items,
+          clientActionId,
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (res.status >= 500 || res.status === 0) {
+          await enqueueAction({
+            id: clientActionId,
+            restaurantSlug: restaurant.slug,
+            tableNumber: chosenTable,
+            type: "UPDATE_ORDER",
+            payload,
+          });
+          setCart([]);
+          setShowCart(false);
+          flash("Order updated. Changes will sync when you're back online.");
+          router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/${editingOrderId}?updated=1`);
+          return;
+        }
         setError(data.error || "Could not update order.");
         return;
       }
       router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/${editingOrderId}?updated=1`);
     } catch {
-      setError("Network error. Please try again.");
+      try {
+        await enqueueAction({
+          restaurantSlug: restaurant.slug,
+          tableNumber: chosenTable,
+          type: "UPDATE_ORDER",
+          payload,
+        });
+        setCart([]);
+        setShowCart(false);
+        flash("Order updated. Changes will sync when you're back online.");
+        router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/${editingOrderId}?updated=1`);
+      } catch {
+        setError("Network error. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }
