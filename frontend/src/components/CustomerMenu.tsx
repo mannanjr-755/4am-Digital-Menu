@@ -463,6 +463,9 @@ export function CustomerMenu({
 
   async function placeOrder() {
     setError(null);
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      return setError("You are offline. Connect to place your order.");
+    }
     if (!customerName.trim()) return setError("Please enter your name.");
     if (customerEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
       return setError("Please enter a valid email address.");
