@@ -16,6 +16,12 @@ import {
 } from "lucide-react";
 import { formatMoney, isCustomerEditable, STATUS_LABELS } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  collectMenuImageUrls,
+  menuCacheKey,
+  requestCacheUrls,
+  saveMenuSnapshot,
+} from "@/lib/menu-cache";
 
 const FEEDBACK_URL =
   "https://www.google.com/search?q=Le+Bon+Panier+Cafe+menu&rlz=1C1GCEA_en-GBPK1168PK1168&oq=Le&gs_lcrp=EgZjaHJvbWUqBggEEEUYOzIGCAAQRRg8MgoIARAAGLEDGIAEMgoIAhAAGLEDGIAEMgYIAxBFGDsyBggEEEUYOzIGCAUQRRg5MgYIBhBFGDwyBggHEEUYPdIBCDcwOTJqMGo3qAIAsAIA&sourceid=chrome&source=chrome.ob&ie=UTF-8#lrd=0x3eb33d003c2e03c3:0x8cf7ef6c98453b52,3,,,,";
@@ -157,10 +163,24 @@ export function CustomerMenu({
     setCategories(initialCategories);
   }
 
+  // Persist public menu snapshot for offline use (per restaurant/table).
+  useEffect(() => {
+    void saveMenuSnapshot({
+      key: menuCacheKey(restaurant.slug, tableNumber),
+      restaurant,
+      categories,
+      tableNumber,
+    });
+    requestCacheUrls(collectMenuImageUrls(categories, restaurant));
+  }, [restaurant, categories, tableNumber]);
+
+  // Poll menu while online; pause when offline to avoid noisy retries.
   useEffect(() => {
     let cancelled = false;
+    let id: ReturnType<typeof setInterval> | null = null;
 
     async function refreshMenu() {
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
       try {
         const res = await fetch(`/api/menu?slug=${encodeURIComponent(restaurant.slug)}`, {
           cache: "no-store",
@@ -171,15 +191,43 @@ export function CustomerMenu({
           setCategories(data.categories);
         }
       } catch {
-        // Ignore transient network errors while polling.
+        // Ignore transient network errors while polling / offline.
       }
     }
 
-    refreshMenu();
-    const id = setInterval(refreshMenu, 5000);
+    function startPolling() {
+      if (id) return;
+      void refreshMenu();
+      id = setInterval(refreshMenu, 5000);
+    }
+
+    function stopPolling() {
+      if (id) {
+        clearInterval(id);
+        id = null;
+      }
+    }
+
+    function handleOnline() {
+      startPolling();
+    }
+
+    function handleOffline() {
+      stopPolling();
+    }
+
+    if (typeof navigator === "undefined" || navigator.onLine) {
+      startPolling();
+    }
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
     return () => {
       cancelled = true;
-      clearInterval(id);
+      stopPolling();
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, [restaurant.slug]);
 
@@ -247,6 +295,14 @@ export function CustomerMenu({
 
   async function sendTableRequest(type: "WAITER" | "BILL") {
     if (serviceBusy) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      flash(
+        type === "WAITER"
+          ? "You are offline. Connect to call a waiter."
+          : "You are offline. Connect to request the bill."
+      );
+      return;
+    }
     setServiceBusy(type);
     try {
       const res = await fetch("/api/table-requests", {
