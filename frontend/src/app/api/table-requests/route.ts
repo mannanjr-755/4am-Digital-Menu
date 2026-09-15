@@ -6,66 +6,7 @@ const requestSchema = z.object({
   restaurantSlug: z.string().min(1),
   tableNumber: z.coerce.number().int().positive(),
   type: z.enum(["WAITER", "BILL"]),
-  /** Offline queue id — accepted for client correlation; never written into message */
-  clientActionId: z.string().trim().min(1).max(80).optional().nullable(),
 });
-
-/** Strip accidental UUID / ZWSP markers previously appended to messages. */
-export function sanitizePublicMessage(message: string): string {
-  return message
-    .replace(/\u200B/g, "")
-    .replace(
-      /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\s*$/i,
-      ""
-    )
-    .trim();
-}
-
-async function cleanupPollutedMessages(restaurantId?: string) {
-  try {
-    const recent = await prisma.tableRequest.findMany({
-      where: restaurantId ? { restaurantId } : undefined,
-      select: { id: true, message: true },
-      orderBy: { createdAt: "desc" },
-      take: 300,
-    });
-    for (const row of recent) {
-      const clean = sanitizePublicMessage(row.message);
-      if (clean !== row.message && clean.length > 0) {
-        await prisma.tableRequest.update({
-          where: { id: row.id },
-          data: { message: clean },
-        });
-      }
-    }
-  } catch {
-    // best-effort
-  }
-}
-
-function publicRequestPayload(row: {
-  id: string;
-  type: string;
-  message: string;
-  status: string;
-  createdAt: Date;
-  table: { tableNumber: number };
-}) {
-  return {
-    id: row.id,
-    type: row.type,
-    message: sanitizePublicMessage(row.message),
-    status: row.status,
-    tableNumber: row.table.tableNumber,
-    createdAt: row.createdAt.toISOString(),
-  };
-}
-
-/** One-shot cleanup for CRM notifications that already leaked UUIDs */
-export async function GET() {
-  await cleanupPollutedMessages();
-  return NextResponse.json({ ok: true, cleaned: true });
-}
 
 export async function POST(request: Request) {
   try {
@@ -85,9 +26,6 @@ export async function POST(request: Request) {
     if (!restaurant) {
       return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
     }
-
-    // Fix existing CRM notifications that leaked UUIDs into message text
-    await cleanupPollutedMessages(restaurant.id);
 
     const table = await prisma.table.findUnique({
       where: {
@@ -121,7 +59,16 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      { request: publicRequestPayload(tableRequest) },
+      {
+        request: {
+          id: tableRequest.id,
+          type: tableRequest.type,
+          message: tableRequest.message,
+          status: tableRequest.status,
+          tableNumber: tableRequest.table.tableNumber,
+          createdAt: tableRequest.createdAt.toISOString(),
+        },
+      },
       { status: 201 }
     );
   } catch (error) {

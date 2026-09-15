@@ -52,7 +52,6 @@ const updateOrderSchema = z.object({
       })
     )
     .min(1),
-  clientActionId: z.string().trim().min(1).max(80).optional().nullable(),
 });
 
 export async function PATCH(request: Request, { params }: RouteContext) {
@@ -76,7 +75,6 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       customerEmail,
       specialRequest,
       items,
-      clientActionId,
     } = parsed.data;
 
     const order = await prisma.order.findUnique({
@@ -86,19 +84,6 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    }
-
-    // Idempotent replay of an offline update
-    if (clientActionId && order.sessionId === `u:${clientActionId}`) {
-      const existing = await prisma.order.findUnique({
-        where: { id: orderId },
-        include: {
-          items: true,
-          table: true,
-          restaurant: { select: { name: true, slug: true } },
-        },
-      });
-      return NextResponse.json({ order: existing });
     }
 
     if (!isCustomerEditable(order.status)) {
@@ -182,7 +167,6 @@ export async function PATCH(request: Request, { params }: RouteContext) {
           customerPhone: customerPhone || null,
           customerEmail: customerEmail || null,
           specialRequest: specialRequest?.trim() || null,
-          sessionId: clientActionId ? `u:${clientActionId}` : order.sessionId,
           total,
         },
         include: {

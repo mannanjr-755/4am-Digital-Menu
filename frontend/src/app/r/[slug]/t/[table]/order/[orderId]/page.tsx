@@ -4,7 +4,6 @@ import { format } from "date-fns";
 import type { OrderItem } from "@prisma/client";
 import { prisma } from "@backend/lib/prisma";
 import { formatMoney, isCustomerEditable, STATUS_LABELS, type OrderStatus } from "@/lib/utils";
-import { PendingOrderConfirmation } from "./PendingOrderConfirmation";
 
 type Props = {
   params: Promise<{ slug: string; table: string; orderId: string }>;
@@ -14,16 +13,6 @@ type Props = {
 export default async function OrderConfirmationPage({ params, searchParams }: Props) {
   const { slug, table, orderId } = await params;
   const { updated } = await searchParams;
-
-  if (orderId.startsWith("pending-")) {
-    return (
-      <PendingOrderConfirmation
-        slug={slug}
-        table={table}
-        actionId={orderId.slice("pending-".length)}
-      />
-    );
-  }
 
   const order = await prisma.order.findFirst({
     where: {

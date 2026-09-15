@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { DM_Sans, Playfair_Display } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
@@ -16,7 +16,6 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  applicationName: "Bon Panier Digital Menu",
   title: {
     default: "Bon Panier · Digital Menu",
     template: "%s · Bon Panier",
@@ -27,18 +26,6 @@ export const metadata: Metadata = {
     icon: "/logo.png",
     apple: "/logo.png",
   },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Bon Panier",
-  },
-  formatDetection: {
-    telephone: false,
-  },
-};
-
-export const viewport: Viewport = {
-  themeColor: "#a67066",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
