@@ -43,7 +43,7 @@ export default function AdminLoginPage() {
         <div className="mb-8 text-center">
           <Image
             src="/logo.png"
-            alt="Bon Panier"
+            alt="BREWTL"
             width={72}
             height={72}
             className="mx-auto mb-4 h-[72px] w-[72px] rounded-full object-cover"

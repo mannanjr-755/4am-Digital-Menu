@@ -17,11 +17,11 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: {
-    default: "Bon Panier · Digital Menu",
-    template: "%s · Bon Panier",
+    default: "BREWTL · Digital Menu",
+    template: "%s · BREWTL",
   },
   description:
-    "Bon Panier digital restaurant menu and kitchen dashboard — NFC/QR table ordering.",
+    "BREWTL digital restaurant menu and kitchen dashboard — NFC/QR table ordering.",
   icons: {
     icon: "/logo.png",
     apple: "/logo.png",

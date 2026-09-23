@@ -18,8 +18,7 @@ import { formatMoney, isCustomerEditable, STATUS_LABELS } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const FEEDBACK_URL =
-  "https://www.google.com/search?q=Le+Bon+Panier+Cafe+menu&rlz=1C1GCEA_en-GBPK1168PK1168&oq=Le&gs_lcrp=EgZjaHJvbWUqBggEEEUYOzIGCAAQRRg8MgoIARAAGLEDGIAEMgoIAhAAGLEDGIAEMgYIAxBFGDsyBggEEEUYOzIGCAUQRRg5MgYIBhBFGDwyBggHEEUYPdIBCDcwOTJqMGo3qAIAsAIA&sourceid=chrome&source=chrome.ob&ie=UTF-8#lrd=0x3eb33d003c2e03c3:0x8cf7ef6c98453b52,3,,,,";
-
+  "https://www.google.com/search?q=BREWTL&rlz=1C1GCEA_en-GBPK1168PK1168&oq=BREWTL&gs_lcrp=EgZjaHJvbWUqDAgAEEUYOxjjAhiABDIMCAAQRRg7GOMCGIAEMg0IARAuGK8BGMcBGIAEMgcIAhAAGIAEMg8IAxAuGAoYrwEYxwEYgAQyBwgEEAAYgAQyBggFEEUYPTIGCAYQRRg9MgYIBxBFGD3SAQc1NjlqMGo3qAIAsAIA&sourceid=chrome&source=chrome.ob&ie=UTF-8#lrd=0x3eb33d4bb8141db3:0x356634dad65bb0d,3,,,,"
 type ActiveOrderItem = {
   id: string;
   menuItemId: string | null;
@@ -531,7 +530,7 @@ export function CustomerMenu({
           <div className="flex flex-col items-center text-center">
             <Image
               src="/logo.png"
-              alt="Bon Panier"
+              alt="BREWTL"
               width={96}
               height={96}
               className="h-20 w-20 rounded-full object-cover shadow-[var(--shadow)]"
@@ -636,7 +635,7 @@ export function CustomerMenu({
           <div className="flex items-center gap-2">
             <Image
               src="/logo.png"
-              alt="Bon Panier"
+              alt="BREWTL"
               width={40}
               height={40}
               className="h-10 w-10 rounded-full object-cover"
@@ -897,7 +896,7 @@ export function CustomerMenu({
                 {isEditMode ? "Edit Order" : "Checkout"}
               </h2>
               <p className="text-sm text-[var(--text-muted)]">
-                Bella Cucina · Table {selectedTable || tableNumber}
+                BREWTL · Table {selectedTable || tableNumber}
               </p>
               {isEditMode && (
                 <p className="mt-1 text-xs text-[var(--gold)]">

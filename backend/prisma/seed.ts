@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Seeding Bella Cucina demo data...");
+  console.log("Seeding BREWTL demo data...");
 
   // Clean existing data for a clean demo
   await prisma.orderItem.deleteMany();
@@ -17,10 +17,10 @@ async function main() {
 
   const passwordHash = await bcrypt.hash("password123", 10);
 
-  const bella = await prisma.restaurant.create({
+  const brewtl = await prisma.restaurant.create({
     data: {
-      name: "Bella Cucina",
-      slug: "bella-cucina",
+      name: "BREWTL",
+      slug: "brewtl",
       logo: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&h=200&fit=crop",
       coverImage:
         "https://images.unsplash.com/photo-1558030006-450675393462?w=1400&h=700&fit=crop",
@@ -47,10 +47,10 @@ async function main() {
 
   await prisma.user.create({
     data: {
-      email: "admin@bellacucina.com",
+      email: "admin@brewtl.com",
       passwordHash,
       name: "Admin",
-      restaurantId: bella.id,
+      restaurantId: brewtl.id,
     },
   });
 
@@ -58,9 +58,9 @@ async function main() {
   for (let n = 1; n <= 12; n++) {
     await prisma.table.create({
       data: {
-        restaurantId: bella.id,
+        restaurantId: brewtl.id,
         tableNumber: n,
-        uniqueCode: `bella-cucina-t${n}-${Math.random().toString(36).slice(2, 8)}`,
+        uniqueCode: `brewtl-t${n}-${Math.random().toString(36).slice(2, 8)}`,
         active: true,
       },
     });
@@ -268,7 +268,7 @@ async function main() {
   for (const cat of categories) {
     const category = await prisma.menuCategory.create({
       data: {
-        restaurantId: bella.id,
+        restaurantId: brewtl.id,
         name: cat.name,
         sortOrder: sort++,
       },
@@ -322,8 +322,8 @@ async function main() {
   });
 
   console.log("Done!");
-  console.log("Customer menu: /r/bella-cucina/t/12");
-  console.log("Admin login: admin@bellacucina.com / password123");
+  console.log("Customer menu: /r/brewtl/t/12");
+  console.log("Admin login: admin@brewtl.com / password123");
 }
 
 main()

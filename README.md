@@ -1,4 +1,4 @@
-# Bella Cucina — Restaurant Ordering
+# BREWTL — Restaurant Ordering
 
 Premium dark/gold digital menu + kitchen dashboard.
 
@@ -30,12 +30,12 @@ This starts the full app at http://localhost:3000 (customer menu, admin UI, and 
 
 | Role | URL / credentials |
 |------|-------------------|
-| Customer menu (Table 12) | http://localhost:3000/r/bella-cucina/t/12 |
+| Customer menu (Table 12) | http://localhost:3000/r/brewtl/t/12 |
 | Staff login | http://localhost:3000/admin/login |
-| Admin | `admin@bellacucina.com` / `password123` |
+| Admin | `admin@brewtl.com` / `password123` |
 
 ## Brand
 
-- Restaurant: **Bella Cucina**
+- Restaurant: **BREWTL**
 - Theme: black background, gold accents, Playfair + DM Sans
 - Currency: Rs.

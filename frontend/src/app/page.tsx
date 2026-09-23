@@ -13,14 +13,14 @@ export default function HomePage() {
         <div className="flex items-center gap-3">
           <Image
             src="/logo.png"
-            alt="Bon Panier"
+            alt="BREWTL"
             width={44}
             height={44}
             className="h-11 w-11 rounded-full object-cover"
             priority
           />
           <div>
-            <p className="font-display text-xl text-[var(--gold-bright)]">Bon Panier</p>
+            <p className="font-display text-xl text-[var(--gold-bright)]">BREWTL</p>
             <p className="text-[10px] uppercase tracking-[0.25em] text-[var(--text-dim)]">
               The French Bakery Cafe & Store
             </p>
@@ -39,7 +39,7 @@ export default function HomePage() {
           Digital menu · Kitchen dashboard
         </p>
         <h1 className="font-display mt-4 max-w-3xl text-5xl leading-tight text-[var(--text)] sm:text-7xl">
-          Bon Panier
+          BREWTL
         </h1>
         <p className="mt-6 max-w-2xl text-base leading-relaxed text-[var(--text-muted)] sm:text-lg">
           Customers scan a table QR or NFC tag, order from your digital menu, and staff see every
@@ -48,7 +48,7 @@ export default function HomePage() {
 
         <div className="mt-10 flex flex-wrap gap-3">
           <Link
-            href="/r/bella-cucina/t/12"
+            href="/r/brewtl/t/12"
             className="rounded-md bg-[var(--gold)] px-7 py-3.5 text-sm font-bold uppercase tracking-wider text-[var(--bg)]"
           >
             Try demo menu
@@ -65,7 +65,7 @@ export default function HomePage() {
           {[
             {
               title: "Table URL",
-              body: "/r/bella-cucina/t/12 — NFC and QR only store this link.",
+              body: "/r/brewtl/t/12 — NFC and QR only store this link.",
             },
             {
               title: "Live orders",
