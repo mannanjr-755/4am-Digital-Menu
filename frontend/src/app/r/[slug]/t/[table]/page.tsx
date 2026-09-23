@@ -14,9 +14,11 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   await connection();
-  const restaurant = await prisma.restaurant.findUnique({ where: { slug } });
+  const restaurant =
+    (await prisma.restaurant.findUnique({ where: { slug } })) ??
+    (slug === "brewtl" ? await prisma.restaurant.findFirst() : null);
   return {
-    title: restaurant ? `${restaurant.name} · Menu` : "Menu",
+    title: restaurant ? `${slug === "brewtl" ? "BREWTL" : restaurant.name} · Menu` : "Menu",
     description: restaurant?.description ?? "Digital restaurant menu",
   };
 }
@@ -32,23 +34,42 @@ export default async function TableMenuPage({ params }: Props) {
     notFound();
   }
 
-  const restaurant = await prisma.restaurant.findUnique({
-    where: { slug },
-    include: {
-      categories: {
-        orderBy: { sortOrder: "asc" },
-        include: {
-          items: {
-            where: { available: true },
-            orderBy: { name: "asc" },
+  const restaurant =
+    (await prisma.restaurant.findUnique({
+      where: { slug },
+      include: {
+        categories: {
+          orderBy: { sortOrder: "asc" },
+          include: {
+            items: {
+              where: { available: true },
+              orderBy: { name: "asc" },
+            },
           },
         },
+        tables: {
+          where: { tableNumber, active: true },
+        },
       },
-      tables: {
-        where: { tableNumber, active: true },
-      },
-    },
-  });
+    })) ??
+    (slug === "brewtl"
+      ? await prisma.restaurant.findFirst({
+          include: {
+            categories: {
+              orderBy: { sortOrder: "asc" },
+              include: {
+                items: {
+                  where: { available: true },
+                  orderBy: { name: "asc" },
+                },
+              },
+            },
+            tables: {
+              where: { tableNumber, active: true },
+            },
+          },
+        })
+      : null);
 
   if (!restaurant || restaurant.tables.length === 0) {
     notFound();
@@ -88,7 +109,7 @@ export default async function TableMenuPage({ params }: Props) {
     <Suspense>
       <CustomerMenu
         restaurant={{
-          name: restaurant.name,
+          name: slug === "brewtl" ? "BREWTL" : restaurant.name,
           slug: restaurant.slug,
           logo: restaurant.logo,
           coverImage: restaurant.coverImage,
