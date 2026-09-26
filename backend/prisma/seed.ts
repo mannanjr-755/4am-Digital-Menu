@@ -3,24 +3,21 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-async function main() {
-  console.log("Seeding BREWTL demo data...");
+const BREWTL_SLUG = "brewtl";
+const PIZZA_SLUG = "pizza-palace";
+const BREWTL_TABLES = 12;
 
-  // Clean existing data for a clean demo
-  await prisma.orderItem.deleteMany();
-  await prisma.order.deleteMany();
-  await prisma.menuItem.deleteMany();
-  await prisma.menuCategory.deleteMany();
-  await prisma.table.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.restaurant.deleteMany();
+async function main() {
+  console.log("Seeding BREWTL demo data (insert-only, safe for shared databases)...");
 
   const passwordHash = await bcrypt.hash("password123", 10);
 
-  const brewtl = await prisma.restaurant.create({
-    data: {
+  const brewtl = await prisma.restaurant.upsert({
+    where: { slug: BREWTL_SLUG },
+    update: {},
+    create: {
       name: "BREWTL",
-      slug: "brewtl",
+      slug: BREWTL_SLUG,
       logo: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&h=200&fit=crop",
       coverImage:
         "https://images.unsplash.com/photo-1558030006-450675393462?w=1400&h=700&fit=crop",
@@ -45,8 +42,10 @@ async function main() {
     },
   });
 
-  await prisma.user.create({
-    data: {
+  await prisma.user.upsert({
+    where: { email: "admin@brewtl.com" },
+    update: { restaurantId: brewtl.id, active: true },
+    create: {
       email: "admin@brewtl.com",
       passwordHash,
       name: "Admin",
@@ -55,7 +54,18 @@ async function main() {
   });
 
   // 12 tables (demo highlights table 12)
-  for (let n = 1; n <= 12; n++) {
+  for (let n = 1; n <= BREWTL_TABLES; n++) {
+    const existing = await prisma.table.findFirst({
+      where: { restaurantId: brewtl.id, tableNumber: n },
+      select: { id: true },
+    });
+    if (existing) {
+      await prisma.table.update({
+        where: { id: existing.id },
+        data: { active: true },
+      });
+      continue;
+    }
     await prisma.table.create({
       data: {
         restaurantId: brewtl.id,
@@ -264,39 +274,50 @@ async function main() {
     },
   ];
 
-  let sort = 0;
-  for (const cat of categories) {
-    const category = await prisma.menuCategory.create({
-      data: {
-        restaurantId: brewtl.id,
-        name: cat.name,
-        sortOrder: sort++,
-      },
-    });
-    for (const item of cat.items) {
-      await prisma.menuItem.create({
+  const existingCategories = await prisma.menuCategory.count({
+    where: { restaurantId: brewtl.id },
+  });
+
+  if (existingCategories === 0) {
+    let sort = 0;
+    for (const cat of categories) {
+      const category = await prisma.menuCategory.create({
         data: {
           restaurantId: brewtl.id,
-          categoryId: category.id,
-          name: item.name,
-          description: item.description,
-          price: item.price,
-          imageUrl: item.imageUrl,
-          available: true,
-          featured: "featured" in item ? (item as Record<string, unknown>).featured as boolean : false,
-          popular: "popular" in item ? (item as Record<string, unknown>).popular as boolean : false,
-          todaySpecial: "todaySpecial" in item ? (item as Record<string, unknown>).todaySpecial as boolean : false,
-          options: "options" in item ? (item as Record<string, unknown>).options as string : null,
+          name: cat.name,
+          sortOrder: sort++,
         },
       });
+      for (const item of cat.items) {
+        await prisma.menuItem.create({
+          data: {
+            restaurantId: brewtl.id,
+            categoryId: category.id,
+            name: item.name,
+            description: item.description,
+            price: item.price,
+            imageUrl: item.imageUrl,
+            available: true,
+            featured: "featured" in item ? (item as Record<string, unknown>).featured as boolean : false,
+            popular: "popular" in item ? (item as Record<string, unknown>).popular as boolean : false,
+            todaySpecial: "todaySpecial" in item ? (item as Record<string, unknown>).todaySpecial as boolean : false,
+            options: "options" in item ? (item as Record<string, unknown>).options as string : null,
+          },
+        });
+      }
     }
+    console.log(`Inserted ${categories.length} menu categories for BREWTL.`);
+  } else {
+    console.log(`BREWTL already has ${existingCategories} menu categories — left untouched.`);
   }
 
   // Keep a second restaurant for isolation testing
-  const pizza = await prisma.restaurant.create({
-    data: {
+  const pizza = await prisma.restaurant.upsert({
+    where: { slug: PIZZA_SLUG },
+    update: {},
+    create: {
       name: "Pizza Palace",
-      slug: "pizza-palace",
+      slug: PIZZA_SLUG,
       description: "Wood-fired pizzas",
       phone: "+92 300 7654321",
       logo: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=200&h=200&fit=crop",
@@ -304,22 +325,30 @@ async function main() {
         "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1200&h=600&fit=crop",
     },
   });
-  await prisma.user.create({
-    data: {
+  await prisma.user.upsert({
+    where: { email: "staff@pizzapalace.com" },
+    update: { restaurantId: pizza.id, active: true },
+    create: {
       email: "staff@pizzapalace.com",
       passwordHash,
       name: "Pizza Admin",
       restaurantId: pizza.id,
     },
   });
-  await prisma.table.create({
-    data: {
-      restaurantId: pizza.id,
-      tableNumber: 1,
-      uniqueCode: "pizza-palace-t1-demo",
-      active: true,
-    },
+  const pizzaTable = await prisma.table.findFirst({
+    where: { restaurantId: pizza.id, tableNumber: 1 },
+    select: { id: true },
   });
+  if (!pizzaTable) {
+    await prisma.table.create({
+      data: {
+        restaurantId: pizza.id,
+        tableNumber: 1,
+        uniqueCode: "pizza-palace-t1-demo",
+        active: true,
+      },
+    });
+  }
 
   console.log("Done!");
   console.log("Customer menu: /r/brewtl/t/12");
