@@ -47,9 +47,6 @@ export default async function TableMenuPage({ params }: Props) {
             },
           },
         },
-        tables: {
-          where: { tableNumber, active: true },
-        },
       },
     })) ??
     (slug === "brewtl"
@@ -64,14 +61,32 @@ export default async function TableMenuPage({ params }: Props) {
                 },
               },
             },
-            tables: {
-              where: { tableNumber, active: true },
-            },
           },
         })
       : null);
 
-  if (!restaurant || restaurant.tables.length === 0) {
+  if (!restaurant) {
+    notFound();
+  }
+
+  // NFC/QR may point at any table number — ensure it exists for this restaurant.
+  const table = await prisma.table.upsert({
+    where: {
+      restaurantId_tableNumber: {
+        restaurantId: restaurant.id,
+        tableNumber,
+      },
+    },
+    create: {
+      restaurantId: restaurant.id,
+      tableNumber,
+      uniqueCode: `${restaurant.slug}-t${tableNumber}-${Math.random().toString(36).slice(2, 8)}`,
+      active: true,
+    },
+    update: { active: true },
+  });
+
+  if (!table.active) {
     notFound();
   }
 
