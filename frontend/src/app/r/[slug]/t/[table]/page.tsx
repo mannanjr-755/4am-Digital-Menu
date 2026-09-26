@@ -27,8 +27,8 @@ export default async function TableMenuPage({ params }: Props) {
   // Always read latest menu from the shared DB (CRM writes here too).
   await connection();
 
-  const { slug, table } = await params;
-  const tableNumber = Number(table);
+  const { slug, table: tableParam } = await params;
+  const tableNumber = Number(tableParam);
 
   if (!Number.isInteger(tableNumber) || tableNumber < 1) {
     notFound();
@@ -70,7 +70,7 @@ export default async function TableMenuPage({ params }: Props) {
   }
 
   // NFC/QR may point at any table number — ensure it exists for this restaurant.
-  const table = await prisma.table.upsert({
+  const tableRecord = await prisma.table.upsert({
     where: {
       restaurantId_tableNumber: {
         restaurantId: restaurant.id,
@@ -86,7 +86,7 @@ export default async function TableMenuPage({ params }: Props) {
     update: { active: true },
   });
 
-  if (!table.active) {
+  if (!tableRecord.active) {
     notFound();
   }
 
