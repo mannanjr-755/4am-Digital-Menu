@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+:root {
+  --font-dm-sans: "DM Sans";
+  --font-playfair: "Playfair Display";
+}
+
 :root,
 [data-theme="dark"] {
   --bg: #1c1412;
