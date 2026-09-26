@@ -31,24 +31,34 @@ const INITIAL: TableGeofenceState = {
   message: null,
 };
 
+const UNSUPPORTED: TableGeofenceState = {
+  status: "unsupported",
+  locked: true,
+  distanceM: null,
+  message: "Location is required to use this menu. Please use a GPS-enabled browser.",
+};
+
 export function useTableGeofence(slug: string, tableNumber: number): TableGeofenceState {
   const [state, setState] = useState<TableGeofenceState>(INITIAL);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !navigator.geolocation) {
-      setState({
-        status: "unsupported",
-        locked: true,
-        distanceM: null,
-        message: "Location is required to use this menu. Please use a GPS-enabled browser.",
-      });
-      return;
+    let watchId: number | null = null;
+    let cancelled = false;
+    const supported = typeof window !== "undefined" && !!navigator.geolocation;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setState(supported ? INITIAL : UNSUPPORTED);
+    });
+
+    if (!supported) {
+      return () => {
+        cancelled = true;
+      };
     }
 
     const key = geoOriginStorageKey(slug, tableNumber);
     let origin: GeoOrigin | null = readGeoOrigin(key);
-    let watchId: number | null = null;
-    let cancelled = false;
 
     const applyPosition = (pos: GeolocationPosition) => {
       if (cancelled) return;
@@ -91,7 +101,6 @@ export function useTableGeofence(slug: string, tableNumber: number): TableGeofen
       timeout: 20000,
     };
 
-    setState(INITIAL);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         applyPosition(pos);

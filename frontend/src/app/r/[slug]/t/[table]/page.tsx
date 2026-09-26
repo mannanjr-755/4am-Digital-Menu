@@ -27,8 +27,8 @@ export default async function TableMenuPage({ params }: Props) {
   // Always read latest menu from the shared DB (CRM writes here too).
   await connection();
 
-  const { slug, table: tableParam } = await params;
-  const tableNumber = Number(tableParam);
+  const { slug, table } = await params;
+  const tableNumber = Number(table);
 
   if (!Number.isInteger(tableNumber) || tableNumber < 1) {
     notFound();
@@ -47,6 +47,9 @@ export default async function TableMenuPage({ params }: Props) {
             },
           },
         },
+        tables: {
+          where: { tableNumber, active: true },
+        },
       },
     })) ??
     (slug === "brewtl"
@@ -61,32 +64,14 @@ export default async function TableMenuPage({ params }: Props) {
                 },
               },
             },
+            tables: {
+              where: { tableNumber, active: true },
+            },
           },
         })
       : null);
 
-  if (!restaurant) {
-    notFound();
-  }
-
-  // NFC/QR may point at any table number — ensure it exists for this restaurant.
-  const tableRecord = await prisma.table.upsert({
-    where: {
-      restaurantId_tableNumber: {
-        restaurantId: restaurant.id,
-        tableNumber,
-      },
-    },
-    create: {
-      restaurantId: restaurant.id,
-      tableNumber,
-      uniqueCode: `${restaurant.slug}-t${tableNumber}-${Math.random().toString(36).slice(2, 8)}`,
-      active: true,
-    },
-    update: { active: true },
-  });
-
-  if (!tableRecord.active) {
+  if (!restaurant || restaurant.tables.length === 0) {
     notFound();
   }
 

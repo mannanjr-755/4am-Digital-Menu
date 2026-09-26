@@ -3,7 +3,7 @@ import { authConfig } from "@backend/lib/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-export default auth((req) => {
+export default auth(function proxy(req) {
   const { pathname } = req.nextUrl;
 
   // Protect admin routes (except login)
