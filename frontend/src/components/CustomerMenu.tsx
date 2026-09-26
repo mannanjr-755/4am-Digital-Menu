@@ -7,6 +7,7 @@ import {
   Bell,
   ClipboardList,
   Heart,
+  MapPin,
   Minus,
   Phone,
   Plus,
@@ -15,6 +16,8 @@ import {
   Smile,
 } from "lucide-react";
 import { formatMoney, isCustomerEditable, STATUS_LABELS } from "@/lib/utils";
+import { TABLE_GEOFENCE_RADIUS_M } from "@/lib/geofence";
+import { useTableGeofence } from "@/hooks/useTableGeofence";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const FEEDBACK_URL =
@@ -132,7 +135,6 @@ export function CustomerMenu({
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [specialRequest, setSpecialRequest] = useState("");
-  const [selectedTable, setSelectedTable] = useState(String(tableNumber));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -149,6 +151,7 @@ export function CustomerMenu({
   const editingOrderId = searchParams.get("orderId");
   const editMode = searchParams.get("mode") as "edit" | "add" | null;
   const isEditMode = !!editingOrderId;
+  const geofence = useTableGeofence(restaurant.slug, tableNumber);
 
   // Keep customer menu in sync when server props change (CRM / shared DB).
   if (initialCategories !== categoriesBaseline) {
@@ -208,7 +211,6 @@ export function CustomerMenu({
         setCustomerEmail(order.customerEmail || "");
         setCustomerPhone(order.customerPhone || "");
         setSpecialRequest(order.specialRequest || "");
-        setSelectedTable(String(order.table?.tableNumber || tableNumber));
 
         if (editMode === "edit") {
           setShowCart(true);
@@ -411,10 +413,6 @@ export function CustomerMenu({
       return setError("Please enter a valid email address.");
     }
 
-    const chosenTable = Number(selectedTable);
-    if (!Number.isInteger(chosenTable) || chosenTable < 1) {
-      return setError("Please enter a valid table number.");
-    }
     if (!cart.length) return setError("Your cart is empty.");
 
     setSubmitting(true);
@@ -424,7 +422,7 @@ export function CustomerMenu({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           restaurantSlug: restaurant.slug,
-          tableNumber: chosenTable,
+          tableNumber,
           customerName: customerName.trim(),
           customerEmail: customerEmail.trim() || null,
           customerPhone: customerPhone.trim() || null,
@@ -437,7 +435,7 @@ export function CustomerMenu({
         setError(data.error || "Could not place order.");
         return;
       }
-      router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/${data.order.id}`);
+      router.push(`/r/${restaurant.slug}/t/${tableNumber}/order/${data.order.id}`);
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -451,10 +449,6 @@ export function CustomerMenu({
     if (customerEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
       return setError("Please enter a valid email address.");
     }
-    const chosenTable = Number(selectedTable);
-    if (!Number.isInteger(chosenTable) || chosenTable < 1) {
-      return setError("Please enter a valid table number.");
-    }
     if (!cart.length) return setError("Your cart is empty.");
     if (!editingOrderId) return setError("No order to update.");
 
@@ -465,7 +459,7 @@ export function CustomerMenu({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           restaurantSlug: restaurant.slug,
-          tableNumber: chosenTable,
+          tableNumber,
           customerName: customerName.trim(),
           customerEmail: customerEmail.trim() || null,
           customerPhone: customerPhone.trim() || null,
@@ -478,13 +472,13 @@ export function CustomerMenu({
         setError(data.error || "Could not update order.");
         return;
       }
-      router.push(`/r/${restaurant.slug}/t/${chosenTable}/order/${editingOrderId}?updated=1`);
+      router.push(`/r/${restaurant.slug}/t/${tableNumber}/order/${editingOrderId}?updated=1`);
     } catch {
       setError("Network error. Please try again.");
     } finally {
       setSubmitting(false);
     }
-  }, [cart, customerName, customerEmail, customerPhone, selectedTable, specialRequest, editingOrderId, restaurant.slug, router]);
+  }, [cart, customerName, customerEmail, customerPhone, specialRequest, editingOrderId, restaurant.slug, router, tableNumber]);
 
   function loadActiveOrderIntoCart(order: ActiveOrder) {
     setCart(
@@ -511,6 +505,53 @@ export function CustomerMenu({
 
   const inputClass =
     "w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-elevated)] px-3 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-dim)] focus:border-[var(--gold)]";
+
+  if (geofence.locked) {
+    const title =
+      geofence.status === "requesting"
+        ? "Checking your location…"
+        : geofence.status === "denied"
+          ? "Location required"
+          : geofence.status === "unsupported"
+            ? "GPS not available"
+            : geofence.status === "error"
+              ? "Location error"
+              : "Menu closed";
+    const detail =
+      geofence.message ||
+      (geofence.status === "requesting"
+        ? "We save where you opened this link. Please allow location access."
+        : `You moved more than ${TABLE_GEOFENCE_RADIUS_M}m from where you opened this menu. Come back to your table to continue.`);
+
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 text-[var(--text)]">
+        <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 text-center shadow-[var(--shadow)]">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[var(--gold)]/40 bg-[var(--gold)]/10 text-[var(--gold)]">
+            <MapPin className="h-6 w-6" />
+          </div>
+          <h1 className="font-display mt-4 text-2xl text-[var(--gold-bright)]">{title}</h1>
+          <p className="mt-2 text-sm text-[var(--text-muted)]">{detail}</p>
+          {geofence.distanceM != null && geofence.status === "active" && (
+            <p className="mt-3 text-xs text-[var(--text-dim)]">
+              Distance from open spot: {Math.round(geofence.distanceM)}m
+            </p>
+          )}
+          {(geofence.status === "denied" || geofence.status === "error") && (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-5 w-full rounded-md bg-[var(--gold)] py-3 text-sm font-bold uppercase tracking-wider text-[var(--gold-bright)]"
+            >
+              Try again
+            </button>
+          )}
+          {geofence.status === "requesting" && (
+            <p className="mt-4 text-xs text-[var(--text-dim)]">Waiting for GPS…</p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] lg:flex">
@@ -896,7 +937,7 @@ export function CustomerMenu({
                 {isEditMode ? "Edit Order" : "Checkout"}
               </h2>
               <p className="text-sm text-[var(--text-muted)]">
-                BREWTL · Table {selectedTable || tableNumber}
+                BREWTL · Table {tableNumber}
               </p>
               {isEditMode && (
                 <p className="mt-1 text-xs text-[var(--gold)]">
@@ -940,17 +981,6 @@ export function CustomerMenu({
                 <span className="text-[var(--gold-bright)]">{formatMoney(cartTotal)}</span>
               </div>
               <div className="space-y-3">
-                <label className="block text-sm">
-                  <span className="mb-1 block text-[var(--text-muted)]">Table number *</span>
-                  <input
-                    value={selectedTable}
-                    onChange={(e) => setSelectedTable(e.target.value)}
-                    type="number"
-                    className={inputClass}
-                    placeholder="e.g. 12"
-                    min="1"
-                  />
-                </label>
                 <label className="block text-sm">
                   <span className="mb-1 block text-[var(--text-muted)]">Customer name *</span>
                   <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} className={inputClass} placeholder="Enter your full name" />

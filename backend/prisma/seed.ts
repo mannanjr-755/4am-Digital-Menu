@@ -276,7 +276,7 @@ async function main() {
     for (const item of cat.items) {
       await prisma.menuItem.create({
         data: {
-          restaurantId: bella.id,
+          restaurantId: brewtl.id,
           categoryId: category.id,
           name: item.name,
           description: item.description,
