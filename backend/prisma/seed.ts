@@ -44,11 +44,12 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "admin@4am.com" },
-    update: { restaurantId: brand.id, active: true },
+    update: { restaurantId: brand.id, active: true, passwordHash },
     create: {
       email: "admin@4am.com",
       passwordHash,
       name: "Admin",
+      role: "ADMIN",
       restaurantId: brand.id,
     },
   });
@@ -327,7 +328,7 @@ async function main() {
   });
   await prisma.user.upsert({
     where: { email: "staff@pizzapalace.com" },
-    update: { restaurantId: pizza.id, active: true },
+    update: { restaurantId: pizza.id, active: true, passwordHash },
     create: {
       email: "staff@pizzapalace.com",
       passwordHash,
