@@ -3,21 +3,21 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const BREWTL_SLUG = "brewtl";
+const BRAND_SLUG = "4am";
 const PIZZA_SLUG = "pizza-palace";
-const BREWTL_TABLES = 12;
+const BRAND_TABLES = 12;
 
 async function main() {
-  console.log("Seeding BREWTL demo data (insert-only, safe for shared databases)...");
+  console.log("Seeding 4AM demo data (insert-only, safe for shared databases)...");
 
   const passwordHash = await bcrypt.hash("password123", 10);
 
-  const brewtl = await prisma.restaurant.upsert({
-    where: { slug: BREWTL_SLUG },
+  const brand = await prisma.restaurant.upsert({
+    where: { slug: BRAND_SLUG },
     update: {},
     create: {
-      name: "BREWTL",
-      slug: BREWTL_SLUG,
+      name: "4AM",
+      slug: BRAND_SLUG,
       logo: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&h=200&fit=crop",
       coverImage:
         "https://images.unsplash.com/photo-1558030006-450675393462?w=1400&h=700&fit=crop",
@@ -43,20 +43,20 @@ async function main() {
   });
 
   await prisma.user.upsert({
-    where: { email: "admin@brewtl.com" },
-    update: { restaurantId: brewtl.id, active: true },
+    where: { email: "admin@4am.com" },
+    update: { restaurantId: brand.id, active: true },
     create: {
-      email: "admin@brewtl.com",
+      email: "admin@4am.com",
       passwordHash,
       name: "Admin",
-      restaurantId: brewtl.id,
+      restaurantId: brand.id,
     },
   });
 
   // 12 tables (demo highlights table 12)
-  for (let n = 1; n <= BREWTL_TABLES; n++) {
+  for (let n = 1; n <= BRAND_TABLES; n++) {
     const existing = await prisma.table.findFirst({
-      where: { restaurantId: brewtl.id, tableNumber: n },
+      where: { restaurantId: brand.id, tableNumber: n },
       select: { id: true },
     });
     if (existing) {
@@ -68,9 +68,9 @@ async function main() {
     }
     await prisma.table.create({
       data: {
-        restaurantId: brewtl.id,
+        restaurantId: brand.id,
         tableNumber: n,
-        uniqueCode: `brewtl-t${n}-${Math.random().toString(36).slice(2, 8)}`,
+        uniqueCode: `4am-t${n}-${Math.random().toString(36).slice(2, 8)}`,
         active: true,
       },
     });
@@ -275,7 +275,7 @@ async function main() {
   ];
 
   const existingCategories = await prisma.menuCategory.count({
-    where: { restaurantId: brewtl.id },
+    where: { restaurantId: brand.id },
   });
 
   if (existingCategories === 0) {
@@ -283,7 +283,7 @@ async function main() {
     for (const cat of categories) {
       const category = await prisma.menuCategory.create({
         data: {
-          restaurantId: brewtl.id,
+          restaurantId: brand.id,
           name: cat.name,
           sortOrder: sort++,
         },
@@ -291,7 +291,7 @@ async function main() {
       for (const item of cat.items) {
         await prisma.menuItem.create({
           data: {
-            restaurantId: brewtl.id,
+            restaurantId: brand.id,
             categoryId: category.id,
             name: item.name,
             description: item.description,
@@ -306,9 +306,9 @@ async function main() {
         });
       }
     }
-    console.log(`Inserted ${categories.length} menu categories for BREWTL.`);
+    console.log(`Inserted ${categories.length} menu categories for 4AM.`);
   } else {
-    console.log(`BREWTL already has ${existingCategories} menu categories — left untouched.`);
+    console.log(`4AM already has ${existingCategories} menu categories — left untouched.`);
   }
 
   // Keep a second restaurant for isolation testing
@@ -351,8 +351,8 @@ async function main() {
   }
 
   console.log("Done!");
-  console.log("Customer menu: /r/brewtl/t/12");
-  console.log("Admin login: admin@brewtl.com / password123");
+  console.log("Customer menu: /r/4am/t/12");
+  console.log("Admin login: admin@4am.com / password123");
 }
 
 main()

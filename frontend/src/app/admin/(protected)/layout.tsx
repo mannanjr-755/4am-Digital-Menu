@@ -26,7 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <div className="flex items-center gap-3">
             <Image
               src="/logo.png"
-              alt="BREWTL"
+              alt="4AM"
               width={40}
               height={40}
               className="h-10 w-10 rounded-full object-cover"

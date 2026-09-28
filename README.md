@@ -1,4 +1,4 @@
-# BREWTL — Restaurant Ordering
+# 4AM — Restaurant Ordering
 
 Premium dark/gold digital menu + kitchen dashboard.
 
@@ -12,7 +12,7 @@ restaurantorder/
 └── .env          # Shared environment config
 ```
 
-Production is a **single Vercel project** (`nfc-digital-menu`) with one public URL. The API is served from the same Next.js deployment at `/api/*`.
+Production is a **single Vercel project** (`4am-digital-menu`) with one public URL — https://4amdigitalmenu.vercel.app. The API is served from the same Next.js deployment at `/api/*`.
 
 ## Quick start
 
@@ -30,12 +30,12 @@ This starts the full app at http://localhost:3000 (customer menu, admin UI, and 
 
 | Role | URL / credentials |
 |------|-------------------|
-| Customer menu (Table 12) | http://localhost:3000/r/brewtl/t/12 |
+| Customer menu (Table 12) | http://localhost:3000/r/4am/t/12 |
 | Staff login | http://localhost:3000/admin/login |
-| Admin | `admin@brewtl.com` / `password123` |
+| Admin | `admin@4am.com` / `password123` |
 
 ## Brand
 
-- Restaurant: **BREWTL**
+- Restaurant: **4AM** (slug `4am`)
 - Theme: black background, gold accents, Playfair + DM Sans
 - Currency: Rs.

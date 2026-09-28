@@ -4,11 +4,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "BREWTL · Digital Menu",
-    template: "%s · BREWTL",
+    default: "4AM · Digital Menu",
+    template: "%s · 4AM",
   },
   description:
-    "BREWTL digital restaurant menu and kitchen dashboard — NFC/QR table ordering.",
+    "4AM digital restaurant menu and kitchen dashboard — NFC/QR table ordering.",
   icons: {
     icon: "/logo.png",
     apple: "/logo.png",

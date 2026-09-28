@@ -16,9 +16,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   await connection();
   const restaurant =
     (await prisma.restaurant.findUnique({ where: { slug } })) ??
-    (slug === "brewtl" ? await prisma.restaurant.findFirst() : null);
+    (slug === "4am" ? await prisma.restaurant.findFirst() : null);
   return {
-    title: restaurant ? `${slug === "brewtl" ? "BREWTL" : restaurant.name} · Menu` : "Menu",
+    title: restaurant ? `${slug === "4am" ? "4AM" : restaurant.name} · Menu` : "Menu",
     description: restaurant?.description ?? "Digital restaurant menu",
   };
 }
@@ -52,7 +52,7 @@ export default async function TableMenuPage({ params }: Props) {
         },
       },
     })) ??
-    (slug === "brewtl"
+    (slug === "4am"
       ? await prisma.restaurant.findFirst({
           include: {
             categories: {
@@ -109,7 +109,7 @@ export default async function TableMenuPage({ params }: Props) {
     <Suspense>
       <CustomerMenu
         restaurant={{
-          name: slug === "brewtl" ? "BREWTL" : restaurant.name,
+          name: slug === "4am" ? "4AM" : restaurant.name,
           slug: restaurant.slug,
           logo: restaurant.logo,
           coverImage: restaurant.coverImage,

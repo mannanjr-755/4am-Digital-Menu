@@ -13,25 +13,25 @@ export default function HomePage() {
         <div className="flex items-center gap-3">
           <Image
             src="/logo.png"
-            alt="BREWTL"
+            alt="4AM"
             width={44}
             height={44}
             className="h-11 w-11 rounded-full object-cover"
             priority
           />
           <div>
-            <p className="font-display text-xl text-[var(--gold-bright)]">BREWTL</p>
+            <p className="font-display text-xl text-[var(--gold-bright)]">4AM</p>
             <p className="text-[10px] uppercase tracking-[0.25em] text-[var(--text-dim)]">
               The French Bakery Cafe & Store
             </p>
           </div>
         </div>
-        <Link
+        <a
           href={`${crmBase}/login`}
           className="rounded-full border border-[var(--gold)]/40 px-5 py-2 text-sm text-[var(--gold-bright)] transition hover:bg-[var(--gold)]/10"
         >
           Staff login
-        </Link>
+        </a>
       </header>
 
       <main className="relative mx-auto max-w-6xl px-6 pb-24 pt-16 sm:pt-24">
@@ -39,7 +39,7 @@ export default function HomePage() {
           Digital menu · Kitchen dashboard
         </p>
         <h1 className="font-display mt-4 max-w-3xl text-5xl leading-tight text-[var(--text)] sm:text-7xl">
-          BREWTL
+          4AM
         </h1>
         <p className="mt-6 max-w-2xl text-base leading-relaxed text-[var(--text-muted)] sm:text-lg">
           Customers scan a table QR or NFC tag, order from your digital menu, and staff see every
@@ -48,24 +48,24 @@ export default function HomePage() {
 
         <div className="mt-10 flex flex-wrap gap-3">
           <Link
-            href="/r/brewtl/t/12"
+            href="/r/4am/t/12"
             className="rounded-md bg-[var(--gold)] px-7 py-3.5 text-sm font-bold uppercase tracking-wider text-[var(--bg)]"
           >
             Try demo menu
           </Link>
-          <Link
+          <a
             href={`${crmBase}/login`}
             className="rounded-md border border-[var(--border)] bg-[var(--bg-card)] px-7 py-3.5 text-sm font-semibold text-[var(--text)]"
           >
             Open dashboard
-          </Link>
+          </a>
         </div>
 
         <dl className="mt-20 grid gap-5 sm:grid-cols-3">
           {[
             {
               title: "Table URL",
-              body: "/r/brewtl/t/12 — NFC and QR only store this link.",
+              body: "/r/4am/t/12 — NFC and QR only store this link.",
             },
             {
               title: "Live orders",
