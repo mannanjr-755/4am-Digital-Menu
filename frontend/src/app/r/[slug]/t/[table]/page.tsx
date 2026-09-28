@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     (await prisma.restaurant.findUnique({ where: { slug } })) ??
     (slug === "4am" ? await prisma.restaurant.findFirst() : null);
   return {
-    title: restaurant ? `${slug === "4am" ? "4AM" : restaurant.name} · Menu` : "Menu",
+    title: "Menu",
     description: restaurant?.description ?? "Digital restaurant menu",
   };
 }
